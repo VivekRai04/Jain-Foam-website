@@ -142,7 +142,7 @@ export class MemStorage implements IStorage {
         name: "PVC Flooring",
         category: "Flooring",
         description: "Durable PVC flooring in wood texture patterns",
-        imageUrl: "/generated_images/PVCfloor.png",
+        imageUrl: "/generated_images/pvcfloor.png",
       },
       {
         name: "Vinyl Flooring",
@@ -172,7 +172,7 @@ export class MemStorage implements IStorage {
         name: "Vertical Blinds",
         category: "Blinds",
         description: "Vertical blinds for large windows and doors",
-        imageUrl: "/generated_images/blackoutcurtain.png",
+        imageUrl: "/generated_images/verticalblind.png",
       },
       {
         name: "Balcony Grass",
