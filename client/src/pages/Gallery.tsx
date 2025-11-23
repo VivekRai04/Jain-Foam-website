@@ -3,12 +3,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { Instagram } from "lucide-react";
-import mattressImage from "@assets/generated_images/Mattress_product_photo_73a5ba87.png";
-import curtainsImage from "@assets/generated_images/Curtains_product_photo_f7e29867.png";
-import sofaImage from "@assets/generated_images/Sofa_product_photo_ddab7fc9.png";
-import wallpaperImage from "@assets/generated_images/Wallpaper_product_photo_065f0180.png";
-import flooringImage from "@assets/generated_images/Flooring_product_photo_9f959715.png";
-import heroImage from "@assets/generated_images/Hero_living_room_showcase_416398aa.png";
+import mattressImage from "@assets/generated_images/Mattress_product_photo_73a5ba87.webp";
+import curtainsImage from "@assets/generated_images/Curtains_product_photo_f7e29867.webp";
+import sofaImage from "@assets/generated_images/Sofa_product_photo_ddab7fc9.webp";
+import wallpaperImage from "@assets/generated_images/Wallpaper_product_photo_065f0180.webp";
+import flooringImage from "@assets/generated_images/Flooring_product_photo_9f959715.webp";
+import heroImage from "@assets/generated_images/Hero_living_room_showcase_416398aa.webp";
 
 export default function Gallery() {
   const [isVisible, setIsVisible] = useState(false);
@@ -107,6 +107,7 @@ export default function Gallery() {
                   alt={item.title}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   data-testid={`img-gallery-${item.id}`}
+                  loading="lazy"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                   <div className="absolute bottom-0 left-0 right-0 p-4 text-white">

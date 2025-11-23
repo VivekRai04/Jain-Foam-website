@@ -44,13 +44,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const inquiry = await storage.createContactInquiry(validatedData);
 
-      console.log("New contact inquiry received:");
-      console.log("Name:", validatedData.name);
-      console.log("Email:", validatedData.email);
-      console.log("Phone:", validatedData.phone);
-      console.log("Service:", validatedData.service);
-      console.log("Message:", validatedData.message);
-
       // Send email notification asynchronously (don't wait for it)
       emailService.sendContactInquiryEmail(validatedData).catch((emailError) => {
         console.error("Failed to send contact inquiry email:", emailError);

@@ -142,7 +142,7 @@ export default function Products() {
                       alt={product.name}
                       className="w-full h-full object-cover transition-transform duration-700 hover:scale-110"
                       data-testid={`img-product-${product.id}`}
-                      onError={(e) => console.log('Image failed to load:', product.imageUrl)}
+                      loading="lazy"
                     />
                   </div>
                   <CardContent className="p-6">

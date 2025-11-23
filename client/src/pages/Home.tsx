@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, CheckCircle, Clock, Users, Truck } from "lucide-react";
-import heroImage from "@assets/generated_images/Hero_living_room_showcase_416398aa.png";
+import heroImage from "@assets/generated_images/Hero_living_room_showcase_416398aa.webp";
 import { useEffect, useRef, useState } from "react";
 
 export default function Home() {

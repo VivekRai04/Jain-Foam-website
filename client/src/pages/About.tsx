@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { Award, Heart, Target, Users } from "lucide-react";
-import shopImage from "@assets/generated_images/Shop_exterior_photo_41c82ca4.png";
+import shopImage from "@assets/generated_images/Shop_exterior_photo_41c82ca4.webp";
 import { useEffect, useState } from "react";
 
 export default function About() {
@@ -125,6 +125,7 @@ export default function About() {
               alt="Jain Foam & Furnishing Store"
               className="w-full h-auto object-cover"
               data-testid="img-shop"
+              loading="lazy"
             />
           </div>
         </div>

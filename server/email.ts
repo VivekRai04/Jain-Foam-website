@@ -18,8 +18,6 @@ class EmailService {
 
   async sendEmail(options: EmailOptions): Promise<void> {
     try {
-      console.log('Sending email via Brevo API to:', options.to);
-
       const payload = {
         sender: {
           name: 'Jain Foam & Furnishing',
@@ -49,7 +47,6 @@ class EmailService {
       }
 
       const result = await response.json();
-      console.log('Email sent successfully via Brevo:', result.messageId);
     } catch (error) {
       console.error('Error sending email via Brevo:', error);
       throw new Error('Failed to send email');
