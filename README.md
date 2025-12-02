@@ -1,1 +1,135 @@
+# 🛍️ Jain Foam & Furnishing Website
 
+A modern, full-stack e-commerce website for **Jain Foam & Furnishing**, showcasing their **30+ years of expertise** in foam products, sofas, curtains, wallpapers, and home furnishings. The platform is designed to emphasize trust, local credibility, and a seamless shopping experience.
+
+---
+
+## ✨ Features
+
+- **Responsive UI** with a clean, modern aesthetic
+- **Product Showcase** with categories such as **Curtains, Sofas, Wallpapers, Flooring, and Mattresses**
+- **Interactive Image Gallery** featuring filterable masonry grid and lightbox
+- **Contact & Inquiry Integration** with forms, location map, and email support
+- **Search Engine Optimized** for strong local presence
+- **Admin Panel** for managing products, orders, and customer queries
+- **AI-Powered Chatbot** for customer support
+- **Dark/Light Theme Switching** with smooth animations
+
+---
+
+## 🛠️ Tech Stack
+
+### Frontend
+- React 18 (Vite)
+- Tailwind CSS
+- Radix UI
+- Framer Motion
+- React Query
+- Wouter Router
+
+### Backend
+- Express.js (TypeScript)
+- Drizzle ORM + Neon Database
+- Passport.js Authentication
+- Nodemailer Email Services
+- WebSocket for real-time features
+
+### Developer Tooling
+- TypeScript
+- ESBuild
+- Drizzle Kit
+- PostCSS (Autoprefixer)
+
+---
+
+## 🚀 Installation
+
+### 1. Clone Repository
+```bash
+git clone https://github.com/your-username/jain-foam-website.git
+cd jain-foam-website
+```
+
+### 2. Install Dependencies
+```bash
+npm install
+```
+
+### 3. Configure Environment Variables
+- Copy the provided `.env` template.
+- Add database credentials, email configuration, and API keys.
+- Reference `EMAIL_SETUP.md` for email setup.
+
+### 4. Push Database Schema
+```bash
+npm run db:push
+```
+
+### 5. Start Development Server
+```bash
+npm run dev
+```
+- Client: `http://localhost:5173`
+- Server: runs on configured backend port
+
+---
+
+## 💻 Usage
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start client + server in development |
+| `npm run build` | Build production bundle |
+| `npm run start` | Run production server |
+| `npm run check` | TypeScript type checking |
+| `npm run db:push` | Apply database schema changes |
+
+---
+
+## 📁 Project Structure
+
+```
+├── client/                  # Frontend (React)
+│   ├── public/             # Static assets
+│   ├── src/
+│   │   ├── components/     # Shared UI components
+│   │   ├── pages/          # Page-level components
+│   │   ├── hooks/          # Custom hooks
+│   │   └── lib/            # Config & utilities
+├── server/                  # Backend (Express)
+│   ├── index.ts            # API entry point
+│   ├── routes.ts           # API routes
+│   ├── email.ts            # Email service
+│   └── storage.ts          # File management utilities
+├── shared/                  # Shared schemas & types
+├── attached_assets/         # Generated images & assets
+└── design_guidelines.md     # Brand & UI design system
+```
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository  
+2. Create a feature branch (`git checkout -b feature/new-feature`)  
+3. Commit changes (`git commit -m "Add new feature"`)  
+4. Push the branch (`git push origin feature/new-feature`)  
+5. Submit a Pull Request  
+
+---
+
+## 📜 License
+This project is licensed under the **MIT License**. Refer to the `LICENSE` file.
+
+---
+
+## 📞 Contact
+
+**Jain Foam & Furnishing**
+
+- Website: *Add your deployed link here*
+- Email: *Business email*
+- Phone: *Business phone*
+- Address: *Business address*
+
+For technical support or contributions, please open an issue on GitHub.
