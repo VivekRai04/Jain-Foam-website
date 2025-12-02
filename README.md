@@ -108,11 +108,6 @@ npm run dev
 
 ---
 
-## 📜 License
-This project is licensed under the **MIT License**. Refer to the `LICENSE` file.
-
----
-
 ## 📞 Contact
 
 **Jain Foam & Furnishing**
