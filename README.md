@@ -53,15 +53,10 @@ npm install
 
 ### 3. Configure Environment Variables
 - Copy the provided `.env` template.
-- Add database credentials, email configuration, and API keys.
+- Add email configuration, and API keys.
 - Reference `EMAIL_SETUP.md` for email setup.
 
-### 4. Push Database Schema
-```bash
-npm run db:push
-```
-
-### 5. Start Development Server
+### 4. Start Development Server
 ```bash
 npm run dev
 ```
