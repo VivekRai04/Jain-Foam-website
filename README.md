@@ -127,9 +127,8 @@ This project is licensed under the **MIT License**. Refer to the `LICENSE` file.
 
 **Jain Foam & Furnishing**
 
-- Website: *Add your deployed link here*
-- Email: *Business email*
-- Phone: *Business phone*
-- Address: *Business address*
+- Website: *https://jain-foam-website.onrender.com/*
+- Email: *raiv5253@gmail.com*
+- Phone: *8850472926*
 
 For technical support or contributions, please open an issue on GitHub.
