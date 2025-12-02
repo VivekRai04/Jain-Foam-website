@@ -73,7 +73,6 @@ npm run dev
 | `npm run build` | Build production bundle |
 | `npm run start` | Run production server |
 | `npm run check` | TypeScript type checking |
-| `npm run db:push` | Apply database schema changes |
 
 ---
 
