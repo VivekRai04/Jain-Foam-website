@@ -11,9 +11,7 @@ A modern, full-stack e-commerce website for **Jain Foam & Furnishing**, showcasi
 - **Interactive Image Gallery** featuring filterable masonry grid and lightbox
 - **Contact & Inquiry Integration** with forms, location map, and email support
 - **Search Engine Optimized** for strong local presence
-- **Admin Panel** for managing products, orders, and customer queries
 - **AI-Powered Chatbot** for customer support
-- **Dark/Light Theme Switching** with smooth animations
 
 ---
 
@@ -23,15 +21,14 @@ A modern, full-stack e-commerce website for **Jain Foam & Furnishing**, showcasi
 - React 18 (Vite)
 - Tailwind CSS
 - Radix UI
-- Framer Motion
 - React Query
 - Wouter Router
 
 ### Backend
 - Express.js (TypeScript)
-- Drizzle ORM + Neon Database
-- Passport.js Authentication
-- Nodemailer Email Services
+- Drizzle ORM
+- Brevo API
+- Nounce Chatbot Integration
 - WebSocket for real-time features
 
 ### Developer Tooling
