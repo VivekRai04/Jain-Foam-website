@@ -10,9 +10,36 @@ A modern, full-stack e-commerce website for **Jain Foam & Furnishing**, showcasi
 - **Product Showcase** with categories such as **Curtains, Sofas, Wallpapers, Flooring, and Mattresses**
 - **Interactive Image Gallery** featuring filterable masonry grid and lightbox
 - **Contact & Inquiry Integration** with forms, location map, and email support
-- **Admin Dashboard** for managing customer enquiries with status tracking
+- **Admin Dashboard** for managing customer enquiries with persistent storage and status tracking
 - **Search Engine Optimized** for strong local presence
 - **AI-Powered Chatbot** for customer support
+
+---
+
+## 👨‍💼 Admin Dashboard
+
+The application includes a comprehensive admin dashboard for managing customer enquiries:
+
+### Features
+- **Secure Authentication**: Password-protected admin access with bcrypt hashing
+- **Enquiry Management**: View, update status, and delete customer enquiries
+- **Persistent Storage**: All enquiries stored in JSON format with status tracking
+- **Real-time Updates**: Dashboard refreshes automatically every 30 seconds
+- **Status Tracking**: Mark enquiries as unread, read, or responded
+- **Detailed View**: Expandable enquiry details with full customer information
+
+### Access
+- **Login URL**: `http://localhost:5000/admin/login`
+- **Password**:  `(configurable in `.env`)`
+- **Dashboard URL**: `http://localhost:5000/admin/dashboard`
+
+### Configuration
+Set the admin password hash in `.env`:
+
+To generate a new password hash:
+```bash
+node -e "const bcrypt = require('bcrypt'); bcrypt.hash('your-new-password', 10).then(h => console.log(h))"
+```
 
 ---
 
@@ -27,15 +54,15 @@ A modern, full-stack e-commerce website for **Jain Foam & Furnishing**, showcasi
 
 ### Backend
 - Express.js (TypeScript)
-- File-based storage for enquiries
-- Session-based admin authentication
-- Brevo API for email
+- File-based storage for enquiries with JSON persistence
+- Session-based admin authentication with bcrypt
+- RESTful API for enquiry management
+- Brevo API for email notifications
 - Noupe Chatbot Integration
 
 ### Developer Tooling
 - TypeScript
 - ESBuild
-- Drizzle Kit
 - PostCSS (Autoprefixer)
 
 ---
@@ -56,7 +83,6 @@ npm install
 ### 3. Configure Environment Variables
 - Copy the provided `.env` template.
 - Add email configuration, and API keys.
-- Reference `EMAIL_SETUP.md` for email setup.
 
 ### 4. Start Development Server
 ```bash
@@ -91,13 +117,17 @@ npm run dev
 │   ├── src/
 │   │   ├── components/     # Shared UI components
 │   │   ├── pages/          # Page-level components
+│   │   │   ├── AdminLogin.tsx     # Admin authentication
+│   │   │   ├── AdminDashboard.tsx # Enquiry management
+│   │   │   └── ...                # Other pages
 │   │   ├── hooks/          # Custom hooks
 │   │   └── lib/            # Config & utilities
 ├── server/                  # Backend (Express)
 │   ├── index.ts            # API entry point
-│   ├── routes.ts           # API routes
+│   ├── routes.ts           # API routes with admin endpoints
 │   ├── email.ts            # Email service
-│   └── storage.ts          # File management utilities
+│   └── storage.ts          # File-based storage utilities
+├── enquiries.json          # Persistent enquiry storage
 ├── shared/                  # Shared schemas & types
 ├── attached_assets/         # Generated images & assets
 └── design_guidelines.md     # Brand & UI design system
@@ -120,7 +150,7 @@ npm run dev
 **Jain Foam & Furnishing**
 
 - Website: *https://jain-foam-website.onrender.com/*
-- Email: *raiv5253@gmail.com*
-- Phone: *8850472926*
+- Email: *jainfoamf@gmail.com*
+- Phone: *8097032550*
 
 For technical support or contributions, please open an issue on GitHub.
