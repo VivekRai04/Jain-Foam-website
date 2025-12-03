@@ -1,4 +1,6 @@
 import { randomUUID } from "crypto";
+import { readFileSync, writeFileSync, existsSync } from "fs";
+import { join } from "path";
 
 type Product = {
   id: string;
@@ -27,9 +29,12 @@ type ContactInquiry = {
   phone: string;
   service: string;
   message: string;
+  status: 'unread' | 'read' | 'responded';
+  created_at: string;
+  updated_at: string;
 };
 
-type InsertContactInquiry = Omit<ContactInquiry, 'id'>;
+type InsertContactInquiry = Omit<ContactInquiry, 'id' | 'status' | 'created_at' | 'updated_at'>;
 
 export interface IStorage {
   getProducts(): Promise<Product[]>;
@@ -40,19 +45,43 @@ export interface IStorage {
   getCategoryBySlug(slug: string): Promise<Category | undefined>;
   createCategory(category: InsertCategory): Promise<Category>;
 
+  getContactInquiries(): Promise<ContactInquiry[]>;
+  getContactInquiryById(id: string): Promise<ContactInquiry | undefined>;
   createContactInquiry(inquiry: InsertContactInquiry): Promise<ContactInquiry>;
+  updateContactInquiryStatus(id: string, status: ContactInquiry['status']): Promise<ContactInquiry | undefined>;
+  deleteContactInquiry(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
   private products: Map<string, Product>;
   private categories: Map<string, Category>;
-  private contactInquiries: Map<string, ContactInquiry>;
+  private enquiriesFile: string;
 
   constructor() {
     this.products = new Map();
     this.categories = new Map();
-    this.contactInquiries = new Map();
+    this.enquiriesFile = join(process.cwd(), 'enquiries.json');
     this.seedData();
+    this.ensureEnquiriesFile();
+  }
+
+  private ensureEnquiriesFile() {
+    if (!existsSync(this.enquiriesFile)) {
+      writeFileSync(this.enquiriesFile, JSON.stringify([], null, 2));
+    }
+  }
+
+  private readEnquiries(): ContactInquiry[] {
+    try {
+      const data = readFileSync(this.enquiriesFile, 'utf-8');
+      return JSON.parse(data);
+    } catch {
+      return [];
+    }
+  }
+
+  private writeEnquiries(enquiries: ContactInquiry[]) {
+    writeFileSync(this.enquiriesFile, JSON.stringify(enquiries, null, 2));
   }
 
   private seedData() {
@@ -241,13 +270,51 @@ export class MemStorage implements IStorage {
     return category;
   }
 
+  async getContactInquiries(): Promise<ContactInquiry[]> {
+    return this.readEnquiries();
+  }
+
+  async getContactInquiryById(id: string): Promise<ContactInquiry | undefined> {
+    const enquiries = this.readEnquiries();
+    return enquiries.find(e => e.id === id);
+  }
+
   async createContactInquiry(
     insertInquiry: InsertContactInquiry
   ): Promise<ContactInquiry> {
+    const enquiries = this.readEnquiries();
     const id = randomUUID();
-    const inquiry: ContactInquiry = { ...insertInquiry, id };
-    this.contactInquiries.set(id, inquiry);
+    const now = new Date().toISOString();
+    const inquiry: ContactInquiry = {
+      ...insertInquiry,
+      id,
+      status: 'unread',
+      created_at: now,
+      updated_at: now
+    };
+    enquiries.push(inquiry);
+    this.writeEnquiries(enquiries);
     return inquiry;
+  }
+
+  async updateContactInquiryStatus(id: string, status: ContactInquiry['status']): Promise<ContactInquiry | undefined> {
+    const enquiries = this.readEnquiries();
+    const index = enquiries.findIndex(e => e.id === id);
+    if (index === -1) return undefined;
+
+    enquiries[index].status = status;
+    enquiries[index].updated_at = new Date().toISOString();
+    this.writeEnquiries(enquiries);
+    return enquiries[index];
+  }
+
+  async deleteContactInquiry(id: string): Promise<boolean> {
+    const enquiries = this.readEnquiries();
+    const filtered = enquiries.filter(e => e.id !== id);
+    if (filtered.length === enquiries.length) return false;
+
+    this.writeEnquiries(filtered);
+    return true;
   }
 }
 

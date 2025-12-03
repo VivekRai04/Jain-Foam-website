@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import bcrypt from "bcrypt";
 import { storage } from "./storage";
 import { emailService } from "./email";
 
@@ -58,6 +59,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin authentication middleware
+  const requireAdmin = (req: any, res: any, next: any) => {
+    if (req.session?.admin) {
+      return next();
+    }
+    res.status(401).json({ error: "Unauthorized" });
+  };
+
+  // Admin routes
+  app.post("/api/admin/login", async (req, res) => {
+    try {
+      const { password } = req.body;
+      const adminPassword = process.env.ADMIN_PASSWORD;
+
+      if (!adminPassword) {
+        return res.status(500).json({ error: "Admin password not configured" });
+      }
+
+      const isValid = await bcrypt.compare(password, adminPassword);
+      if (!isValid) {
+        return res.status(401).json({ error: "Invalid password" });
+      }
+
+      req.session.admin = true;
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Admin login error:", error);
+      res.status(500).json({ error: "Login failed" });
+    }
+  });
+
+  app.post("/api/admin/logout", (req, res) => {
+    req.session.destroy(() => {
+      res.json({ success: true });
+    });
+  });
+
+  app.get("/api/admin/enquiries", requireAdmin, async (req, res) => {
+    try {
+      const enquiries = await storage.getContactInquiries();
+      res.json(enquiries);
+    } catch (error) {
+      console.error("Error fetching enquiries:", error);
+      res.status(500).json({ error: "Failed to fetch enquiries" });
+    }
+  });
+
+  app.put("/api/admin/enquiries/:id", requireAdmin, async (req, res) => {
+    try {
+      const { status } = req.body;
+      const enquiry = await storage.updateContactInquiryStatus(req.params.id, status);
+      if (!enquiry) {
+        return res.status(404).json({ error: "Enquiry not found" });
+      }
+      res.json(enquiry);
+    } catch (error) {
+      console.error("Error updating enquiry:", error);
+      res.status(500).json({ error: "Failed to update enquiry" });
+    }
+  });
+
+  app.delete("/api/admin/enquiries/:id", requireAdmin, async (req, res) => {
+    try {
+      const deleted = await storage.deleteContactInquiry(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Enquiry not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting enquiry:", error);
+      res.status(500).json({ error: "Failed to delete enquiry" });
+    }
+  });
 
   const httpServer = createServer(app);
 

@@ -10,6 +10,7 @@ A modern, full-stack e-commerce website for **Jain Foam & Furnishing**, showcasi
 - **Product Showcase** with categories such as **Curtains, Sofas, Wallpapers, Flooring, and Mattresses**
 - **Interactive Image Gallery** featuring filterable masonry grid and lightbox
 - **Contact & Inquiry Integration** with forms, location map, and email support
+- **Admin Dashboard** for managing customer enquiries with status tracking
 - **Search Engine Optimized** for strong local presence
 - **AI-Powered Chatbot** for customer support
 
@@ -26,8 +27,9 @@ A modern, full-stack e-commerce website for **Jain Foam & Furnishing**, showcasi
 
 ### Backend
 - Express.js (TypeScript)
-- Drizzle ORM
-- Brevo API
+- File-based storage for enquiries
+- Session-based admin authentication
+- Brevo API for email
 - Noupe Chatbot Integration
 
 ### Developer Tooling
@@ -73,6 +75,11 @@ npm run dev
 | `npm run build` | Build production bundle |
 | `npm run start` | Run production server |
 | `npm run check` | TypeScript type checking |
+
+### Admin Access
+- **Login URL:** `http://localhost:5173/admin/login`
+- **Default Password:** `admin123` (configure in `.env`)
+- **Dashboard:** `http://localhost:5173/admin/dashboard`
 
 ---
 

@@ -9,6 +9,7 @@ export function Footer() {
     { href: "/about", label: "About Us" },
     { href: "/gallery", label: "Gallery" },
     { href: "/contact", label: "Contact" },
+    { href: "/admin/login", label: "Admin", scrollTop: true },
   ];
 
   return (
@@ -43,6 +44,7 @@ export function Footer() {
                     <span
                       className="text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer"
                       data-testid={`link-footer-${link.label.toLowerCase().replace(/\s+/g, "-")}`}
+                      onClick={() => link.scrollTop && window.scrollTo(0, 0)}
                     >
                       {link.label}
                     </span>
