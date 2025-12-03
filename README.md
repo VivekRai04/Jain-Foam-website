@@ -28,7 +28,7 @@ A modern, full-stack e-commerce website for **Jain Foam & Furnishing**, showcasi
 - Express.js (TypeScript)
 - Drizzle ORM
 - Brevo API
-- Nounce Chatbot Integration
+- Noupe Chatbot Integration
 
 ### Developer Tooling
 - TypeScript
