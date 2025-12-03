@@ -88,7 +88,7 @@ npm install
 ```bash
 npm run dev
 ```
-- Client: `http://localhost:5173`
+- Client: `http://localhost:5000`
 - Server: runs on configured backend port
 
 ---
@@ -103,9 +103,9 @@ npm run dev
 | `npm run check` | TypeScript type checking |
 
 ### Admin Access
-- **Login URL:** `http://localhost:5173/admin/login`
-- **Default Password:** `admin123` (configure in `.env`)
-- **Dashboard:** `http://localhost:5173/admin/dashboard`
+- **Login URL:** `http://localhost:5000/admin/login`
+- **Password:**  (configure in `.env`)
+- **Dashboard:** `http://localhost:5000/admin/dashboard`
 
 ---
 
