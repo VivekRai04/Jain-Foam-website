@@ -1,7 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertContactInquirySchema } from "@shared/schema";
 import { emailService } from "./email";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -40,12 +39,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/contact", async (req, res) => {
     try {
-      const validatedData = insertContactInquirySchema.parse(req.body);
-
-      const inquiry = await storage.createContactInquiry(validatedData);
+      const inquiry = await storage.createContactInquiry(req.body);
 
       // Send email notification asynchronously (don't wait for it)
-      emailService.sendContactInquiryEmail(validatedData).catch((emailError) => {
+      emailService.sendContactInquiryEmail(req.body).catch((emailError) => {
         console.error("Failed to send contact inquiry email:", emailError);
         // Don't fail the request if email fails
       });

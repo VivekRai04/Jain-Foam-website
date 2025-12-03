@@ -14,8 +14,18 @@ import { Phone, Mail, MapPin, Clock, Send } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertContactInquirySchema, type InsertContactInquiry } from "@shared/schema";
+import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
+
+const insertContactInquirySchema = z.object({
+  name: z.string().min(2, "Please enter your name"),
+  email: z.string().email("Please enter a valid email address"),
+  phone: z.string().min(10, "Please enter a valid phone number"),
+  service: z.string().min(1, "Please select a service"),
+  message: z.string().min(10, "Please provide more details"),
+});
+
+type InsertContactInquiry = z.infer<typeof insertContactInquirySchema>;
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";

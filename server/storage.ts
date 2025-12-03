@@ -1,22 +1,45 @@
-import {
-  type Product,
-  type InsertProduct,
-  type Category,
-  type InsertCategory,
-  type ContactInquiry,
-  type InsertContactInquiry,
-} from "@shared/schema";
 import { randomUUID } from "crypto";
+
+type Product = {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  imageUrl: string;
+};
+
+type InsertProduct = Omit<Product, 'id'>;
+
+type Category = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  icon: string;
+};
+
+type InsertCategory = Omit<Category, 'id'>;
+
+type ContactInquiry = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  service: string;
+  message: string;
+};
+
+type InsertContactInquiry = Omit<ContactInquiry, 'id'>;
 
 export interface IStorage {
   getProducts(): Promise<Product[]>;
   getProductById(id: string): Promise<Product | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
-  
+
   getCategories(): Promise<Category[]>;
   getCategoryBySlug(slug: string): Promise<Category | undefined>;
   createCategory(category: InsertCategory): Promise<Category>;
-  
+
   createContactInquiry(inquiry: InsertContactInquiry): Promise<ContactInquiry>;
 }
 

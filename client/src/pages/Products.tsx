@@ -3,9 +3,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
-import type { Product } from "@shared/schema";
 import { useEffect, useState, useCallback } from "react";
 import { AlertCircle } from "lucide-react";
+
+type Product = {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  imageUrl: string;
+};
 
 export default function Products() {
   const [isVisible, setIsVisible] = useState(false);
