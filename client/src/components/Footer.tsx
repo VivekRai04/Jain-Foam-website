@@ -32,6 +32,14 @@ export function Footer() {
                   <Instagram className="w-4 h-4" />
                 </Button>
               </a>
+              <a
+                href="tel:08369051217"
+                data-testid="link-footer-phone-button"
+              >
+                <Button variant="outline" size="icon" className="hover-elevate">
+                  <Phone className="w-4 h-4" />
+                </Button>
+              </a>
             </div>
           </div>
 
