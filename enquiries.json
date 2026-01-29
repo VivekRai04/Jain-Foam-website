@@ -20,5 +20,49 @@
     "status": "unread",
     "created_at": "2026-01-28T09:44:02.716Z",
     "updated_at": "2026-01-28T11:18:54.826Z"
+  },
+  {
+    "name": "Yash Kushwaha ",
+    "email": "yash@gmail.com",
+    "phone": "8850472926",
+    "service": "Artificial Grass",
+    "message": "refactor brevo test ",
+    "id": "762df6cd-9ade-4c27-831b-41b9abc72215",
+    "status": "unread",
+    "created_at": "2026-01-29T18:38:10.406Z",
+    "updated_at": "2026-01-29T18:38:10.406Z"
+  },
+  {
+    "name": "Yash Kushwaha ",
+    "email": "yash@gmail.com",
+    "phone": "8850472926",
+    "service": "Mattresses",
+    "message": "brevo testing ",
+    "id": "dcc6bffa-96f6-4039-b77a-6b738ff0aea0",
+    "status": "unread",
+    "created_at": "2026-01-29T18:45:00.954Z",
+    "updated_at": "2026-01-29T18:45:00.954Z"
+  },
+  {
+    "name": "Yash Kushwaha ",
+    "email": "raiv5253@gmail.com",
+    "phone": "8850472926",
+    "service": "Sofas",
+    "message": "brevo refactor testing \n",
+    "id": "74010137-fba7-4393-9c81-c04c7ca3b19d",
+    "status": "unread",
+    "created_at": "2026-01-29T18:46:53.216Z",
+    "updated_at": "2026-01-29T18:46:53.216Z"
+  },
+  {
+    "name": "Yash Kushwaha ",
+    "email": "yash@gmail.com",
+    "phone": "8850472926",
+    "service": "Wallpapers",
+    "message": "local host ",
+    "id": "b64c4b2d-ee76-4bdb-97bd-25017bbe9ed3",
+    "status": "unread",
+    "created_at": "2026-01-29T18:47:36.219Z",
+    "updated_at": "2026-01-29T18:47:36.219Z"
   }
 ]

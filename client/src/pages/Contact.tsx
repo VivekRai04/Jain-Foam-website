@@ -311,7 +311,7 @@ export default function Contact() {
 
             <div>
               <h2 className="text-2xl font-serif font-bold mb-4">Find Us</h2>
-              <div className="rounded-lg overflow-hidden border h-80">
+              <div className="rounded-lg overflow-hidden border h-80 relative group">
                 <iframe
                   src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3767.0!2d72.85!3d19.30!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTnCsDE4JzAwLjAiTiA3MsKwNTEnMDAuMCJF!5e0!3m2!1sen!2sin!4v1234567890"
                   width="100%"
@@ -322,6 +322,13 @@ export default function Contact() {
                   referrerPolicy="no-referrer-when-downgrade"
                   title="Jain Foam & Furnishing Location"
                   data-testid="map-contact"
+                />
+                <a
+                  href="https://maps.app.goo.gl/fXJRqf6atTywARY2A"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="absolute inset-0 cursor-pointer hover:bg-black/10 transition-colors"
+                  title="Click to view Jain Foam & Furnishing in Google Maps"
                 />
               </div>
             </div>

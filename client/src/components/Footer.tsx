@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 
 export function Footer() {
   const quickLinks = [
-    { href: "/", label: "Home" },
-    { href: "/products", label: "Products & Services" },
-    { href: "/about", label: "About Us" },
-    { href: "/gallery", label: "Gallery" },
+    { href: "/", label: "Home", scrollTop: true },
+    { href: "/products", label: "Products & Services", scrollTop: true },
+    { href: "/about", label: "About Us", scrollTop: true },
+    { href: "/gallery", label: "Gallery", scrollTop: true },
     { href: "/contact", label: "Contact" },
     { href: "/admin/login", label: "Admin", scrollTop: true },
   ];
@@ -102,7 +102,7 @@ export function Footer() {
 
           <div>
             <h3 className="text-lg font-semibold mb-4">Location</h3>
-            <div className="rounded-lg overflow-hidden border h-48">
+            <div className="rounded-lg overflow-hidden border h-48 relative group">
               <iframe
                 src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3767.0!2d72.85!3d19.30!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTnCsDE4JzAwLjAiTiA3MsKwNTEnMDAuMCJF!5e0!3m2!1sen!2sin!4v1234567890"
                 width="100%"
@@ -113,6 +113,13 @@ export function Footer() {
                 referrerPolicy="no-referrer-when-downgrade"
                 title="Jain Foam & Furnishing Location"
                 data-testid="map-footer"
+              />
+              <a
+                href="https://maps.app.goo.gl/fXJRqf6atTywARY2A"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="absolute inset-0 cursor-pointer hover:bg-black/10 transition-colors"
+                title="Click to view Jain Foam & Furnishing in Google Maps"
               />
             </div>
           </div>

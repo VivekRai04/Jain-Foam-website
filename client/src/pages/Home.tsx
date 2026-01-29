@@ -3,11 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, CheckCircle, Clock, Users, Truck } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 // Use separate attached assets served from the express server under /assets
 const heroBackground = "/assets/generated_images/Hero_living_room_showcase_416398aa.webp";
 // Encode spaces in filename so the About image URL resolves correctly in the browser
 const aboutImage = encodeURI("/assets/generated_images/Hero liviing room_2.png");
-import { useEffect, useRef, useState } from "react";
 
 export default function Home() {
   const [isVisible, setIsVisible] = useState(false);
@@ -201,7 +201,11 @@ export default function Home() {
                 Our 30+ years of experience, customer-first approach, and wide product range make us the most trusted furnishing shop in the Mira-Bhayandar region.
               </p>
               <Link href="/about" onClick={() => window.scrollTo(0, 0)}>
-                <Button variant="outline" data-testid="button-learn-more">
+                <Button 
+                  variant="outline" 
+                  data-testid="button-learn-more"
+                  style={{ backgroundColor: "hsl(165.65deg 26.44% 65.88%)" }}
+                >
                   Learn More About Us
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>

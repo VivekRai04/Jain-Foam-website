@@ -45,8 +45,6 @@ class EmailService {
         const errorData = await response.text();
         throw new Error(`Brevo API error: ${response.status} - ${errorData}`);
       }
-
-      const result = await response.json();
     } catch (error) {
       console.error('Error sending email via Brevo:', error);
       throw new Error('Failed to send email');
