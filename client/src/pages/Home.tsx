@@ -3,7 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, CheckCircle, Clock, Users, Truck } from "lucide-react";
-import heroImage from "@assets/generated_images/Hero_living_room_showcase_416398aa.webp";
+// Use separate attached assets served from the express server under /assets
+const heroBackground = "/assets/generated_images/Hero_living_room_showcase_416398aa.webp";
+// Encode spaces in filename so the About image URL resolves correctly in the browser
+const aboutImage = encodeURI("/assets/generated_images/Hero liviing room_2.png");
 import { useEffect, useRef, useState } from "react";
 
 export default function Home() {
@@ -73,7 +76,7 @@ export default function Home() {
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
-            backgroundImage: `url(${heroImage})`,
+            backgroundImage: `url(${heroBackground})`,
           }}
         >
           <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-black/60" />
@@ -206,7 +209,7 @@ export default function Home() {
             </div>
             <div className="rounded-lg overflow-hidden shadow-xl">
               <img
-                src={heroImage}
+                src={aboutImage}
                 alt="Jain Foam & Furnishing"
                 className="w-full h-auto object-cover"
                 data-testid="img-about"

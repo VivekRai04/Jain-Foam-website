@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, LogOut, Eye, Image } from "lucide-react";
+import { AlertCircle, LogOut, Eye, Image, ShoppingCart } from "lucide-react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -61,7 +61,7 @@ export default function AdminDashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-2xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-4xl mx-auto">
           <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate("/admin/enquiries")}>
             <CardHeader className="text-center">
               <Eye className="w-12 h-12 mx-auto mb-4 text-primary" />
@@ -74,14 +74,26 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => alert("Manage Images functionality coming soon!")}>
+          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate("/admin/gallery")}>
             <CardHeader className="text-center">
               <Image className="w-12 h-12 mx-auto mb-4 text-primary" />
-              <CardTitle>Manage Images</CardTitle>
+              <CardTitle>Manage Gallery</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-center text-muted-foreground">
-                Upload, edit, and manage images on the website.
+                Upload, edit, and manage gallery images.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate("/admin/products")}>
+            <CardHeader className="text-center">
+              <ShoppingCart className="w-12 h-12 mx-auto mb-4 text-primary" />
+              <CardTitle>Manage Products</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-center text-muted-foreground">
+                Upload, edit, and manage products & services.
               </p>
             </CardContent>
           </Card>

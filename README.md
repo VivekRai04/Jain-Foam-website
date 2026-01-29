@@ -8,9 +8,10 @@ A modern, full-stack e-commerce website for **Jain Foam & Furnishing**, showcasi
 
 - **Responsive UI** with a clean, modern aesthetic
 - **Product Showcase** with categories such as **Curtains, Sofas, Wallpapers, Flooring, and Mattresses**
+- **Database-Driven Image Gallery** with dynamic image management from SQLite database
 - **Interactive Image Gallery** featuring filterable masonry grid and lightbox
 - **Contact & Inquiry Integration** with forms, location map, and email support
-- **Admin Dashboard** for managing customer enquiries with persistent storage and status tracking
+- **Admin Dashboard** for managing customer enquiries and gallery images
 - **Search Engine Optimized** for strong local presence
 - **AI-Powered Chatbot** for customer support
 
@@ -18,20 +19,29 @@ A modern, full-stack e-commerce website for **Jain Foam & Furnishing**, showcasi
 
 ## 👨‍💼 Admin Dashboard
 
-The application includes a comprehensive admin dashboard for managing customer enquiries:
+The application includes a comprehensive admin dashboard for managing customer enquiries and gallery images:
 
-### Features
+### Enquiry Management
 - **Secure Authentication**: Password-protected admin access with bcrypt hashing
 - **Enquiry Management**: View, update status, and delete customer enquiries
-- **Persistent Storage**: All enquiries stored in JSON format with status tracking
-- **Real-time Updates**: Dashboard refreshes automatically every 30 seconds
+- **Persistent Storage**: All enquiries stored with status tracking
+- **Real-time Updates**: Dashboard refreshes automatically
 - **Status Tracking**: Mark enquiries as unread, read, or responded
 - **Detailed View**: Expandable enquiry details with full customer information
+
+### Gallery Management
+- **Image Upload**: Upload images with title and category metadata
+- **Database Storage**: All image data stored in SQLite database
+- **File Management**: Images stored on disk with automatic organization
+- **Admin Interface**: Clean grid view of all gallery items
+- **Delete Operations**: Remove images with confirmation dialogs
+- **Real-time Updates**: Gallery updates immediately after changes
 
 ### Access
 - **Login URL**: `http://localhost:5000/admin/login`
 - **Password**:  `(configurable in `.env`)`
 - **Dashboard URL**: `http://localhost:5000/admin/dashboard`
+- **Gallery Management**: `http://localhost:5000/admin/gallery`
 
 ### Configuration
 Set the admin password hash in `.env`:
@@ -54,9 +64,11 @@ node -e "const bcrypt = require('bcrypt'); bcrypt.hash('your-new-password', 10).
 
 ### Backend
 - Express.js (TypeScript)
+- SQLite3 Database for image gallery and metadata
 - File-based storage for enquiries with JSON persistence
 - Session-based admin authentication with bcrypt
-- RESTful API for enquiry management
+- Multer for image file upload handling
+- RESTful API for enquiry and gallery management
 - Brevo API for email notifications
 - Noupe Chatbot Integration
 
@@ -117,16 +129,24 @@ npm run dev
 │   ├── src/
 │   │   ├── components/     # Shared UI components
 │   │   ├── pages/          # Page-level components
-│   │   │   ├── AdminLogin.tsx     # Admin authentication
-│   │   │   ├── AdminDashboard.tsx # Enquiry management
-│   │   │   └── ...                # Other pages
+│   │   │   ├── AdminLogin.tsx      # Admin authentication
+│   │   │   ├── AdminDashboard.tsx  # Dashboard navigation
+│   │   │   ├── AdminEnquiries.tsx  # Enquiry management
+│   │   │   ├── AdminGallery.tsx    # Gallery management
+│   │   │   ├── Gallery.tsx         # Public gallery
+│   │   │   └── ...                 # Other pages
 │   │   ├── hooks/          # Custom hooks
 │   │   └── lib/            # Config & utilities
 ├── server/                  # Backend (Express)
 │   ├── index.ts            # API entry point
+│   ├── database.ts         # SQLite database setup
 │   ├── routes.ts           # API routes with admin endpoints
 │   ├── email.ts            # Email service
-│   └── storage.ts          # File-based storage utilities
+│   └── storage.ts          # Storage utilities
+├── data/                    # Runtime data
+│   └── app.db              # SQLite database (auto-created)
+├── uploads/                 # Uploaded files
+│   └── gallery/            # Gallery images (auto-created)
 ├── enquiries.json          # Persistent enquiry storage
 ├── shared/                  # Shared schemas & types
 ├── attached_assets/         # Generated images & assets

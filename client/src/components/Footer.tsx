@@ -19,7 +19,7 @@ export function Footer() {
           <div>
             <h3 className="text-lg font-serif font-bold mb-4">Jain Foam & Furnishing</h3>
             <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-              Bhayandar's leading home décor and furnishing destination since 1995. Trusted by thousands across Bhayandar, Mira Road, and Dahisar.
+              Bhayandar's leading home décor and furnishing destination since 1995. Trusted by thousands across Mumbai.
             </p>
             <div className="flex items-center gap-2">
               <a

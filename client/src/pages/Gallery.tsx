@@ -3,16 +3,32 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { Instagram } from "lucide-react";
-import mattressImage from "@assets/generated_images/Mattress_product_photo_73a5ba87.webp";
-import curtainsImage from "@assets/generated_images/Curtains_product_photo_f7e29867.webp";
-import sofaImage from "@assets/generated_images/Sofa_product_photo_ddab7fc9.webp";
-import wallpaperImage from "@assets/generated_images/Wallpaper_product_photo_065f0180.webp";
-import flooringImage from "@assets/generated_images/Flooring_product_photo_9f959715.webp";
-import heroImage from "@assets/generated_images/Hero_living_room_showcase_416398aa.webp";
+import { useQuery } from "@tanstack/react-query";
+
+type GalleryItem = {
+  id: string;
+  title: string;
+  category: string;
+  image_filename: string;
+  image_path: string;
+  order_index: number;
+  created_at: string;
+  updated_at: string;
+};
 
 export default function Gallery() {
   const [isVisible, setIsVisible] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState("All");
+
+  // Fetch gallery items from API
+  const { data: galleryItems = [] } = useQuery({
+    queryKey: ["gallery"],
+    queryFn: async () => {
+      const res = await fetch("/api/gallery");
+      if (!res.ok) throw new Error("Failed to fetch gallery");
+      return res.json() as Promise<GalleryItem[]>;
+    },
+  });
 
   useEffect(() => {
     setIsVisible(true);
@@ -43,18 +59,6 @@ export default function Gallery() {
   }, []);
 
   const filters = ["All", "Mattresses", "Curtains", "Sofas", "Wallpapers", "Carpets", "Blinds"];
-
-  const galleryItems = [
-    { id: 1, image: heroImage, category: "Sofas", title: "Luxury Living Room Setup" },
-    { id: 2, image: mattressImage, category: "Mattresses", title: "Premium Memory Foam Mattress" },
-    { id: 3, image: curtainsImage, category: "Curtains", title: "Elegant Designer Curtains" },
-    { id: 4, image: sofaImage, category: "Sofas", title: "Modern Comfort Sofa" },
-    { id: 5, image: wallpaperImage, category: "Wallpapers", title: "3D Geometric Wallpaper" },
-    { id: 6, image: flooringImage, category: "Carpets", title: "PVC Wood Texture Flooring" },
-    { id: 7, image: curtainsImage, category: "Curtains", title: "Custom Stitched Curtains" },
-    { id: 8, image: wallpaperImage, category: "Wallpapers", title: "Imported Designer Wallpaper" },
-    { id: 9, image: sofaImage, category: "Sofas", title: "Contemporary Sectional Sofa" },
-  ];
 
   const filteredItems =
     selectedFilter === "All"
@@ -103,7 +107,7 @@ export default function Gallery() {
             >
               <div className="aspect-square overflow-hidden bg-muted/30 relative group">
                 <img
-                  src={item.image}
+                  src={item.image_path}
                   alt={item.title}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   data-testid={`img-gallery-${item.id}`}

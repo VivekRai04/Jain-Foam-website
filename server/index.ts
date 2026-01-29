@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
+import { join } from "path";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
@@ -32,6 +33,11 @@ app.use(express.json({
   }
 }));
 app.use(express.urlencoded({ extended: false }));
+
+// Serve uploaded files
+app.use('/uploads', express.static(join(process.cwd(), 'uploads')));
+// Serve additional attached assets (images provided outside client/public)
+app.use('/assets', express.static(join(process.cwd(), 'attached_assets')));
 
 app.use((req, res, next) => {
   const start = Date.now();

@@ -11,7 +11,11 @@ type Product = {
   name: string;
   category: string;
   description: string;
-  imageUrl: string;
+  image_path: string;
+  image_filename: string;
+  order_index: number;
+  created_at: string;
+  updated_at: string;
 };
 
 export default function Products() {
@@ -145,7 +149,7 @@ export default function Products() {
                 >
                   <div className="aspect-square overflow-hidden bg-muted/30 relative">
                     <img
-                      src={product.imageUrl}
+                      src={product.image_path}
                       alt={product.name}
                       className="w-full h-full object-cover transition-transform duration-700 hover:scale-110"
                       data-testid={`img-product-${product.id}`}
