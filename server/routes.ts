@@ -90,6 +90,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Simple endpoint for the client to verify admin session
+  app.get("/api/admin/check", (req, res) => {
+    if (req.session?.admin) {
+      return res.json({ authenticated: true });
+    }
+    res.status(401).json({ error: "Unauthorized" });
+  });
+
   app.post("/api/admin/logout", (req, res) => {
     req.session.destroy(() => {
       res.json({ success: true });

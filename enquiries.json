@@ -8,6 +8,17 @@
     "id": "7edf902f-fccd-4258-aa9a-b49a61663fdb",
     "status": "unread",
     "created_at": "2025-12-03T11:40:05.073Z",
-    "updated_at": "2025-12-03T11:40:31.132Z"
+    "updated_at": "2026-01-28T11:26:16.894Z"
+  },
+  {
+    "name": "Ayush Jain",
+    "email": "raiv5253@gmail.com",
+    "phone": "8850472926",
+    "service": "Curtains",
+    "message": "Brevo testing 123456",
+    "id": "42f8a0ac-0972-4c77-92a0-cb06dd3c5f7a",
+    "status": "unread",
+    "created_at": "2026-01-28T09:44:02.716Z",
+    "updated_at": "2026-01-28T11:18:54.826Z"
   }
 ]
