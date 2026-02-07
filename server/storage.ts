@@ -1,7 +1,9 @@
 import { randomUUID } from "crypto";
-import { readFileSync, writeFileSync, existsSync } from "fs";
-import { join } from "path";
 import { dbAll, dbGet, dbRun } from "./database";
+import { Product, GalleryItem, ContactInquiry, Category, connectToMongoDB } from "./mongodb";
+
+// Database configuration - set to 'sqlite' or 'mongodb'
+const DB_TYPE = process.env.DB_TYPE || 'sqlite';
 
 type Product = {
   id: string;
@@ -81,34 +83,31 @@ export interface IStorage {
 export class MemStorage implements IStorage {
   private products: Map<string, Product>;
   private categories: Map<string, Category>;
-  private enquiriesFile: string;
+  private initialized: boolean = false;
 
   constructor() {
     this.products = new Map();
     this.categories = new Map();
-    this.enquiriesFile = join(process.cwd(), 'enquiries.json');
+    
+    // Initialize MongoDB if configured
+    if (DB_TYPE === 'mongodb') {
+      this.initializeMongoDB();
+    }
+    
     this.seedData();
-    this.ensureEnquiriesFile();
   }
 
-  private ensureEnquiriesFile() {
-    if (!existsSync(this.enquiriesFile)) {
-      writeFileSync(this.enquiriesFile, JSON.stringify([], null, 2));
+  private async initializeMongoDB() {
+    const connected = await connectToMongoDB();
+    if (connected) {
+      this.initialized = true;
+      console.log('MongoDB initialized successfully');
+    } else {
+      console.error('Failed to initialize MongoDB');
     }
   }
 
-  private readEnquiries(): ContactInquiry[] {
-    try {
-      const data = readFileSync(this.enquiriesFile, 'utf-8');
-      return JSON.parse(data);
-    } catch {
-      return [];
-    }
-  }
 
-  private writeEnquiries(enquiries: ContactInquiry[]) {
-    writeFileSync(this.enquiriesFile, JSON.stringify(enquiries, null, 2));
-  }
 
   private seedData() {
     const categories: InsertCategory[] = [
@@ -296,10 +295,15 @@ export class MemStorage implements IStorage {
 
   async getProducts(): Promise<Product[]> {
     try {
-      const products = await dbAll(
-        'SELECT * FROM products ORDER BY order_index ASC, created_at DESC'
-      );
-      return products || [];
+      if (DB_TYPE === 'mongodb') {
+        const products = await Product.find().sort({ order_index: 1, created_at: -1 });
+        return products.map(p => p.toObject());
+      } else {
+        const products = await dbAll(
+          'SELECT * FROM products ORDER BY order_index ASC, created_at DESC'
+        );
+        return products || [];
+      }
     } catch (error) {
       console.error('Error fetching products:', error);
       return [];
@@ -308,8 +312,13 @@ export class MemStorage implements IStorage {
 
   async getProductById(id: string): Promise<Product | undefined> {
     try {
-      const product = await dbGet('SELECT * FROM products WHERE id = ?', [id]);
-      return product;
+      if (DB_TYPE === 'mongodb') {
+        const product = await Product.findOne({ id });
+        return product ? product.toObject() : undefined;
+      } else {
+        const product = await dbGet('SELECT * FROM products WHERE id = ?', [id]);
+        return product;
+      }
     } catch (error) {
       console.error('Error fetching product:', error);
       return undefined;
@@ -320,12 +329,25 @@ export class MemStorage implements IStorage {
     try {
       const id = randomUUID();
       const now = new Date().toISOString();
-      await dbRun(
-        `INSERT INTO products (id, name, category, description, image_filename, image_path, order_index, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [id, insertProduct.name, insertProduct.category, insertProduct.description, insertProduct.image_filename, insertProduct.image_path, insertProduct.order_index, now, now]
-      );
-      return { ...insertProduct, id, created_at: now, updated_at: now };
+      
+      if (DB_TYPE === 'mongodb') {
+        const productData = {
+          ...insertProduct,
+          id,
+          created_at: now,
+          updated_at: now
+        };
+        const product = new Product(productData);
+        await product.save();
+        return product.toObject();
+      } else {
+        await dbRun(
+          `INSERT INTO products (id, name, category, description, image_filename, image_path, order_index, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [id, insertProduct.name, insertProduct.category, insertProduct.description, insertProduct.image_filename, insertProduct.image_path, insertProduct.order_index, now, now]
+        );
+        return { ...insertProduct, id, created_at: now, updated_at: now };
+      }
     } catch (error) {
       console.error('Error creating product:', error);
       throw error;
@@ -340,10 +362,16 @@ export class MemStorage implements IStorage {
       const now = new Date().toISOString();
       const updated: Product = { ...product, ...updates, updated_at: now };
 
-      await dbRun(
-        `UPDATE products SET name = ?, category = ?, description = ?, image_filename = ?, image_path = ?, order_index = ?, updated_at = ? WHERE id = ?`,
-        [updated.name, updated.category, updated.description, updated.image_filename, updated.image_path, updated.order_index, updated.updated_at, id]
-      );
+      if (DB_TYPE === 'mongodb') {
+        await Product.updateOne({ id }, { $set: updated });
+        const updatedProduct = await Product.findOne({ id });
+        return updatedProduct ? updatedProduct.toObject() : undefined;
+      } else {
+        await dbRun(
+          `UPDATE products SET name = ?, category = ?, description = ?, image_filename = ?, image_path = ?, order_index = ?, updated_at = ? WHERE id = ?`,
+          [updated.name, updated.category, updated.description, updated.image_filename, updated.image_path, updated.order_index, updated.updated_at, id]
+        );
+      }
 
       return updated;
     } catch (error) {
@@ -354,7 +382,11 @@ export class MemStorage implements IStorage {
 
   async deleteProduct(id: string): Promise<boolean> {
     try {
-      await dbRun('DELETE FROM products WHERE id = ?', [id]);
+      if (DB_TYPE === 'mongodb') {
+        await Product.deleteOne({ id });
+      } else {
+        await dbRun('DELETE FROM products WHERE id = ?', [id]);
+      }
       return true;
     } catch (error) {
       console.error('Error deleting product:', error);
@@ -363,33 +395,102 @@ export class MemStorage implements IStorage {
   }
 
   async getCategories(): Promise<Category[]> {
-    return Array.from(this.categories.values());
+    try {
+      if (DB_TYPE === 'mongodb') {
+        const categories = await Category.find();
+        return categories.map(c => c.toObject());
+      } else {
+        return Array.from(this.categories.values());
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      return Array.from(this.categories.values());
+    }
   }
 
   async getCategoryBySlug(slug: string): Promise<Category | undefined> {
-    return Array.from(this.categories.values()).find((cat) => cat.slug === slug);
+    try {
+      if (DB_TYPE === 'mongodb') {
+        const category = await Category.findOne({ slug });
+        return category ? category.toObject() : undefined;
+      } else {
+        return Array.from(this.categories.values()).find((cat) => cat.slug === slug);
+      }
+    } catch (error) {
+      console.error('Error fetching category by slug:', error);
+      return Array.from(this.categories.values()).find((cat) => cat.slug === slug);
+    }
   }
 
   async createCategory(insertCategory: InsertCategory): Promise<Category> {
     const id = randomUUID();
     const category: Category = { ...insertCategory, id };
-    this.categories.set(id, category);
-    return category;
+    
+    try {
+      if (DB_TYPE === 'mongodb') {
+        const newCategory = new Category(category);
+        await newCategory.save();
+        return newCategory.toObject();
+      } else {
+        this.categories.set(id, category);
+        return category;
+      }
+    } catch (error) {
+      console.error('Error creating category:', error);
+      this.categories.set(id, category);
+      return category;
+    }
   }
 
   async getContactInquiries(): Promise<ContactInquiry[]> {
-    return this.readEnquiries();
+    try {
+      if (DB_TYPE === 'mongodb') {
+        const inquiries = await ContactInquiry.find().sort({ created_at: -1 });
+        return inquiries.map(inq => {
+          const data = inq.toObject();
+          return {
+            ...data,
+            status: data.status as 'unread' | 'read' | 'responded'
+          };
+        });
+      } else {
+        const inquiries = await dbAll(
+          'SELECT * FROM contact_inquiries ORDER BY created_at DESC'
+        );
+        return inquiries || [];
+      }
+    } catch (error) {
+      console.error('Error fetching contact inquiries:', error);
+      return [];
+    }
   }
 
   async getContactInquiryById(id: string): Promise<ContactInquiry | undefined> {
-    const enquiries = this.readEnquiries();
-    return enquiries.find(e => e.id === id);
+    try {
+      if (DB_TYPE === 'mongodb') {
+        const inquiry = await ContactInquiry.findOne({ id });
+        if (!inquiry) return undefined;
+        const data = inquiry.toObject();
+        return {
+          ...data,
+          status: data.status as 'unread' | 'read' | 'responded'
+        };
+      } else {
+        const inquiry = await dbGet(
+          'SELECT * FROM contact_inquiries WHERE id = ?',
+          [id]
+        );
+        return inquiry;
+      }
+    } catch (error) {
+      console.error('Error fetching contact inquiry:', error);
+      return undefined;
+    }
   }
 
   async createContactInquiry(
     insertInquiry: InsertContactInquiry
   ): Promise<ContactInquiry> {
-    const enquiries = this.readEnquiries();
     const id = randomUUID();
     const now = new Date().toISOString();
     const inquiry: ContactInquiry = {
@@ -399,37 +500,90 @@ export class MemStorage implements IStorage {
       created_at: now,
       updated_at: now
     };
-    enquiries.push(inquiry);
-    this.writeEnquiries(enquiries);
-    return inquiry;
+
+    try {
+      if (DB_TYPE === 'mongodb') {
+        const newInquiry = new ContactInquiry(inquiry);
+        await newInquiry.save();
+        const data = newInquiry.toObject();
+        return {
+          ...data,
+          status: data.status as 'unread' | 'read' | 'responded'
+        };
+      } else {
+        await dbRun(
+          `INSERT INTO contact_inquiries 
+           (id, name, email, phone, service, message, status, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            inquiry.id,
+            inquiry.name,
+            inquiry.email,
+            inquiry.phone,
+            inquiry.service,
+            inquiry.message,
+            inquiry.status,
+            inquiry.created_at,
+            inquiry.updated_at
+          ]
+        );
+        return inquiry;
+      }
+    } catch (error) {
+      console.error('Error creating contact inquiry:', error);
+      throw error;
+    }
   }
 
   async updateContactInquiryStatus(id: string, status: ContactInquiry['status']): Promise<ContactInquiry | undefined> {
-    const enquiries = this.readEnquiries();
-    const index = enquiries.findIndex(e => e.id === id);
-    if (index === -1) return undefined;
+    try {
+      const inquiry = await this.getContactInquiryById(id);
+      if (!inquiry) return undefined;
 
-    enquiries[index].status = status;
-    enquiries[index].updated_at = new Date().toISOString();
-    this.writeEnquiries(enquiries);
-    return enquiries[index];
+      const now = new Date().toISOString();
+      
+      if (DB_TYPE === 'mongodb') {
+        await ContactInquiry.updateOne({ id }, { $set: { status, updated_at: now } });
+        return this.getContactInquiryById(id);
+      } else {
+        await dbRun(
+          'UPDATE contact_inquiries SET status = ?, updated_at = ? WHERE id = ?',
+          [status, now, id]
+        );
+      }
+
+      return { ...inquiry, status, updated_at: now };
+    } catch (error) {
+      console.error('Error updating contact inquiry status:', error);
+      return undefined;
+    }
   }
 
   async deleteContactInquiry(id: string): Promise<boolean> {
-    const enquiries = this.readEnquiries();
-    const filtered = enquiries.filter(e => e.id !== id);
-    if (filtered.length === enquiries.length) return false;
-
-    this.writeEnquiries(filtered);
-    return true;
+    try {
+      if (DB_TYPE === 'mongodb') {
+        await ContactInquiry.deleteOne({ id });
+      } else {
+        await dbRun('DELETE FROM contact_inquiries WHERE id = ?', [id]);
+      }
+      return true;
+    } catch (error) {
+      console.error('Error deleting contact inquiry:', error);
+      return false;
+    }
   }
 
   async getGalleryItems(): Promise<GalleryItem[]> {
     try {
-      const items = await dbAll(
-        'SELECT * FROM gallery_items ORDER BY order_index ASC, created_at DESC'
-      );
-      return items;
+      if (DB_TYPE === 'mongodb') {
+        const items = await GalleryItem.find().sort({ order_index: 1, created_at: -1 });
+        return items.map(item => item.toObject());
+      } else {
+        const items = await dbAll(
+          'SELECT * FROM gallery_items ORDER BY order_index ASC, created_at DESC'
+        );
+        return items;
+      }
     } catch (error) {
       console.error('Error fetching gallery items:', error);
       return [];
@@ -438,11 +592,16 @@ export class MemStorage implements IStorage {
 
   async getGalleryItemById(id: string): Promise<GalleryItem | undefined> {
     try {
-      const item = await dbGet(
-        'SELECT * FROM gallery_items WHERE id = ?',
-        [id]
-      );
-      return item;
+      if (DB_TYPE === 'mongodb') {
+        const item = await GalleryItem.findOne({ id });
+        return item ? item.toObject() : undefined;
+      } else {
+        const item = await dbGet(
+          'SELECT * FROM gallery_items WHERE id = ?',
+          [id]
+        );
+        return item;
+      }
     } catch (error) {
       console.error('Error fetching gallery item:', error);
       return undefined;
@@ -454,14 +613,26 @@ export class MemStorage implements IStorage {
     const now = new Date().toISOString();
     
     try {
-      await dbRun(
-        `INSERT INTO gallery_items (id, title, category, image_filename, image_path, order_index, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [id, insertItem.title, insertItem.category, insertItem.image_filename, insertItem.image_path, insertItem.order_index, now, now]
-      );
-      
-      const item = await this.getGalleryItemById(id);
-      return item!;
+      if (DB_TYPE === 'mongodb') {
+        const itemData = {
+          ...insertItem,
+          id,
+          created_at: now,
+          updated_at: now
+        };
+        const item = new GalleryItem(itemData);
+        await item.save();
+        return item.toObject();
+      } else {
+        await dbRun(
+          `INSERT INTO gallery_items (id, title, category, image_filename, image_path, order_index, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [id, insertItem.title, insertItem.category, insertItem.image_filename, insertItem.image_path, insertItem.order_index, now, now]
+        );
+        
+        const item = await this.getGalleryItemById(id);
+        return item!;
+      }
     } catch (error) {
       console.error('Error creating gallery item:', error);
       throw error;
@@ -476,13 +647,18 @@ export class MemStorage implements IStorage {
       const now = new Date().toISOString();
       const updates = { ...existing, ...insertItem, id, updated_at: now };
 
-      await dbRun(
-        `UPDATE gallery_items SET title = ?, category = ?, image_filename = ?, image_path = ?, order_index = ?, updated_at = ?
-         WHERE id = ?`,
-        [updates.title, updates.category, updates.image_filename, updates.image_path, updates.order_index, now, id]
-      );
+      if (DB_TYPE === 'mongodb') {
+        await GalleryItem.updateOne({ id }, { $set: updates });
+        return this.getGalleryItemById(id);
+      } else {
+        await dbRun(
+          `UPDATE gallery_items SET title = ?, category = ?, image_filename = ?, image_path = ?, order_index = ?, updated_at = ?
+           WHERE id = ?`,
+          [updates.title, updates.category, updates.image_filename, updates.image_path, updates.order_index, now, id]
+        );
 
-      return this.getGalleryItemById(id);
+        return this.getGalleryItemById(id);
+      }
     } catch (error) {
       console.error('Error updating gallery item:', error);
       return undefined;
@@ -491,7 +667,11 @@ export class MemStorage implements IStorage {
 
   async deleteGalleryItem(id: string): Promise<boolean> {
     try {
-      await dbRun('DELETE FROM gallery_items WHERE id = ?', [id]);
+      if (DB_TYPE === 'mongodb') {
+        await GalleryItem.deleteOne({ id });
+      } else {
+        await dbRun('DELETE FROM gallery_items WHERE id = ?', [id]);
+      }
       return true;
     } catch (error) {
       console.error('Error deleting gallery item:', error);

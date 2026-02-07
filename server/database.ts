@@ -41,8 +41,6 @@ export async function initializeDatabase() {
           if (err) {
             console.error('Error creating gallery_items table:', err);
             reject(err);
-          } else {
-            resolve();
           }
         }
       );
@@ -63,13 +61,78 @@ export async function initializeDatabase() {
         (err) => {
           if (err) {
             console.error('Error creating products table:', err);
+          }
+        }
+      );
+
+      // Contact inquiries table
+      db.run(
+        `CREATE TABLE IF NOT EXISTS contact_inquiries (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          email TEXT NOT NULL,
+          phone TEXT NOT NULL,
+          service TEXT NOT NULL,
+          message TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'unread',
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )`,
+        (err) => {
+          if (err) {
+            console.error('Error creating contact_inquiries table:', err);
+            reject(err);
           } else {
+            // After all tables are created, seed initial data
             seedInitialData();
+            // Also migrate existing JSON data to SQLite
+            migrateEnquiriesFromJSON();
+            resolve();
           }
         }
       );
     });
   });
+}
+
+async function migrateEnquiriesFromJSON() {
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const enquiriesFile = path.join(process.cwd(), 'enquiries.json');
+    
+    if (fs.existsSync(enquiriesFile)) {
+      const enquiriesData = fs.readFileSync(enquiriesFile, 'utf-8');
+      const enquiries = JSON.parse(enquiriesData);
+      
+      if (enquiries.length > 0) {
+        const existingCount = await dbGet('SELECT COUNT(*) as count FROM contact_inquiries');
+        if (existingCount && existingCount.count === 0) {
+          for (const inquiry of enquiries) {
+            await dbRun(
+              `INSERT INTO contact_inquiries 
+               (id, name, email, phone, service, message, status, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              [
+                inquiry.id,
+                inquiry.name,
+                inquiry.email,
+                inquiry.phone,
+                inquiry.service,
+                inquiry.message,
+                inquiry.status,
+                inquiry.created_at,
+                inquiry.updated_at
+              ]
+            );
+          }
+          console.log(`Successfully migrated ${enquiries.length} enquiries from JSON to SQLite`);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error migrating enquiries from JSON:', error);
+  }
 }
 
 async function seedInitialData() {
