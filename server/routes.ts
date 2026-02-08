@@ -96,11 +96,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { password } = req.body;
       const adminPassword = process.env.ADMIN_PASSWORD;
 
+      console.log('Login attempt, ADMIN_PASSWORD set:', !!adminPassword);
+
       if (!adminPassword) {
         return res.status(500).json({ error: "Admin password not configured" });
       }
 
       const isValid = await bcrypt.compare(password, adminPassword);
+      console.log('Password match result:', isValid);
+      
       if (!isValid) {
         return res.status(401).json({ error: "Invalid password" });
       }
