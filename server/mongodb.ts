@@ -177,39 +177,29 @@ export async function uploadFileToGridFS(
 
 export async function getFileFromGridFS(fileId: string): Promise<{ stream: GridFSBucketReadStream; info: { filename: string; contentType: string; length: number; _id: ObjectId } } | null> {
   try {
-    const bucket = await getGridFSBucket();
+    const database = await connectToDatabase();
     const objectId = new ObjectId(fileId);
     
+    // First, get file info from the files collection (images.files for our bucket)
+    const filesCollection = database.collection('images.files');
+    const fileInfo = await filesCollection.findOne({ _id: objectId });
+    
+    if (!fileInfo) {
+      return null;
+    }
+    
+    const bucket = await getGridFSBucket();
     const stream = bucket.openDownloadStream(objectId);
     
-    return new Promise((resolve, reject) => {
-      let fileInfo: { filename: string; contentType: string; length: number; _id: ObjectId } | null = null;
-      
-      stream.on('file', (file) => {
-        fileInfo = {
-          filename: file.filename,
-          contentType: file.contentType || 'application/octet-stream',
-          length: file.length,
-          _id: file._id,
-        };
-      });
-      
-      stream.on('error', (error) => {
-        if (error.message.includes('FileNotFound')) {
-          resolve(null);
-        } else {
-          reject(error);
-        }
-      });
-      
-      stream.on('end', () => {
-        if (fileInfo) {
-          resolve({ stream, info: fileInfo });
-        } else {
-          resolve(null);
-        }
-      });
-    });
+    return {
+      stream,
+      info: {
+        filename: fileInfo.filename,
+        contentType: fileInfo.contentType || 'application/octet-stream',
+        length: fileInfo.length,
+        _id: fileInfo._id,
+      }
+    };
   } catch (error) {
     console.error('Error getting file from GridFS:', error);
     return null;
