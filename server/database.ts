@@ -1,145 +1,26 @@
-import sqlite3 from 'sqlite3';
-import { join } from 'path';
-import { existsSync, mkdirSync } from 'fs';
+import { connectToDatabase, getProductsCollection, getGalleryCollection, getContactInquiriesCollection, getCategoriesCollection } from './mongodb';
 
-const dbPath = join(process.cwd(), 'data', 'app.db');
-
-// Ensure data directory exists
-const dataDir = join(process.cwd(), 'data');
-if (!existsSync(dataDir)) {
-  mkdirSync(dataDir, { recursive: true });
-}
-
-export const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error('Error opening database:', err);
-  } else {
-    console.log('Connected to SQLite database');
-    initializeDatabase();
-  }
-});
-
-// Enable foreign keys
-db.run('PRAGMA foreign_keys = ON');
-
+// Database initialization - connects to MongoDB
 export async function initializeDatabase() {
-  return new Promise<void>((resolve, reject) => {
-    db.serialize(() => {
-      // Gallery items table
-      db.run(
-        `CREATE TABLE IF NOT EXISTS gallery_items (
-          id TEXT PRIMARY KEY,
-          title TEXT NOT NULL,
-          category TEXT NOT NULL,
-          image_filename TEXT NOT NULL,
-          image_path TEXT NOT NULL,
-          order_index INTEGER DEFAULT 0,
-          created_at TEXT NOT NULL,
-          updated_at TEXT NOT NULL
-        )`,
-        (err) => {
-          if (err) {
-            console.error('Error creating gallery_items table:', err);
-            reject(err);
-          }
-        }
-      );
-
-      // Products table
-      db.run(
-        `CREATE TABLE IF NOT EXISTS products (
-          id TEXT PRIMARY KEY,
-          name TEXT NOT NULL,
-          category TEXT NOT NULL,
-          description TEXT NOT NULL,
-          image_filename TEXT NOT NULL,
-          image_path TEXT NOT NULL,
-          order_index INTEGER DEFAULT 0,
-          created_at TEXT NOT NULL,
-          updated_at TEXT NOT NULL
-        )`,
-        (err) => {
-          if (err) {
-            console.error('Error creating products table:', err);
-          }
-        }
-      );
-
-      // Contact inquiries table
-      db.run(
-        `CREATE TABLE IF NOT EXISTS contact_inquiries (
-          id TEXT PRIMARY KEY,
-          name TEXT NOT NULL,
-          email TEXT NOT NULL,
-          phone TEXT NOT NULL,
-          service TEXT NOT NULL,
-          message TEXT NOT NULL,
-          status TEXT NOT NULL DEFAULT 'unread',
-          created_at TEXT NOT NULL,
-          updated_at TEXT NOT NULL
-        )`,
-        (err) => {
-          if (err) {
-            console.error('Error creating contact_inquiries table:', err);
-            reject(err);
-          } else {
-            // After all tables are created, seed initial data
-            seedInitialData();
-            // Also migrate existing JSON data to SQLite
-            migrateEnquiriesFromJSON();
-            resolve();
-          }
-        }
-      );
-    });
-  });
-}
-
-async function migrateEnquiriesFromJSON() {
   try {
-    const fs = await import('fs');
-    const path = await import('path');
-    const enquiriesFile = path.join(process.cwd(), 'enquiries.json');
+    await connectToDatabase();
+    console.log('Database initialized successfully');
     
-    if (fs.existsSync(enquiriesFile)) {
-      const enquiriesData = fs.readFileSync(enquiriesFile, 'utf-8');
-      const enquiries = JSON.parse(enquiriesData);
-      
-      if (enquiries.length > 0) {
-        const existingCount = await dbGet('SELECT COUNT(*) as count FROM contact_inquiries');
-        if (existingCount && existingCount.count === 0) {
-          for (const inquiry of enquiries) {
-            await dbRun(
-              `INSERT INTO contact_inquiries 
-               (id, name, email, phone, service, message, status, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-              [
-                inquiry.id,
-                inquiry.name,
-                inquiry.email,
-                inquiry.phone,
-                inquiry.service,
-                inquiry.message,
-                inquiry.status,
-                inquiry.created_at,
-                inquiry.updated_at
-              ]
-            );
-          }
-          console.log(`Successfully migrated ${enquiries.length} enquiries from JSON to SQLite`);
-        }
-      }
-    }
+    // Seed initial data if collections are empty
+    await seedInitialData();
   } catch (error) {
-    console.error('Error migrating enquiries from JSON:', error);
+    console.error('Error initializing database:', error);
+    throw error;
   }
 }
 
 async function seedInitialData() {
   try {
     // Seed gallery items
-    const galleryCount = await dbGet('SELECT COUNT(*) as count FROM gallery_items');
-    if (galleryCount && galleryCount.count === 0) {
+    const galleryCollection = await getGalleryCollection();
+    const galleryCount = await galleryCollection.countDocuments();
+    
+    if (galleryCount === 0) {
       const { randomUUID } = await import('crypto');
       const now = new Date().toISOString();
       
@@ -184,20 +65,25 @@ async function seedInitialData() {
 
       for (let i = 0; i < initialGalleryItems.length; i++) {
         const item = initialGalleryItems[i];
-        const id = randomUUID();
-        await dbRun(
-          `INSERT INTO gallery_items (id, title, category, image_filename, image_path, order_index, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [id, item.title, item.category, item.image_filename, item.image_path, i, now, now]
-        );
+        const { randomUUID: uuid } = await import('crypto');
+        const id = uuid();
+        
+        await galleryCollection.insertOne({
+          ...item,
+          id,
+          order_index: i,
+          created_at: now,
+          updated_at: now
+        });
       }
       console.log('Gallery items seeded successfully');
     }
 
     // Seed products
-    const productCount = await dbGet('SELECT COUNT(*) as count FROM products');
-    if (productCount && productCount.count === 0) {
-      const { randomUUID } = await import('crypto');
+    const productsCollection = await getProductsCollection();
+    const productCount = await productsCollection.countDocuments();
+    
+    if (productCount === 0) {
       const now = new Date().toISOString();
       
       const initialProducts = [
@@ -308,58 +194,64 @@ async function seedInitialData() {
         },
       ];
 
+      const { randomUUID: uuid } = await import('crypto');
+      
       for (let i = 0; i < initialProducts.length; i++) {
         const prod = initialProducts[i];
-        const id = randomUUID();
-        await dbRun(
-          `INSERT INTO products (id, name, category, description, image_filename, image_path, order_index, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [id, prod.name, prod.category, prod.description, prod.image_filename, prod.image_path, i, now, now]
-        );
+        const id = uuid();
+        
+        await productsCollection.insertOne({
+          ...prod,
+          id,
+          order_index: i,
+          created_at: now,
+          updated_at: now
+        });
       }
       console.log('Products seeded successfully');
     }
+
+    // Migrate existing JSON enquiries to MongoDB
+    await migrateEnquiriesFromJSON();
   } catch (error) {
     console.error('Error seeding data:', error);
   }
 }
 
-// Helper function to run queries that return rows
-export function dbAll(sql: string, params: any[] = []): Promise<any[]> {
-  return new Promise((resolve, reject) => {
-    db.all(sql, params, (err, rows) => {
-      if (err) reject(err);
-      else resolve(rows || []);
-    });
-  });
+async function migrateEnquiriesFromJSON() {
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const enquiriesFile = path.join(process.cwd(), 'enquiries.json');
+    
+    if (fs.existsSync(enquiriesFile)) {
+      const enquiriesData = fs.readFileSync(enquiriesFile, 'utf-8');
+      const enquiries = JSON.parse(enquiriesData);
+      
+      if (enquiries.length > 0) {
+        const inquiriesCollection = await getContactInquiriesCollection();
+        const existingCount = await inquiriesCollection.countDocuments();
+        
+        if (existingCount === 0) {
+          const { randomUUID: uuid } = await import('crypto');
+          
+          for (const inquiry of enquiries) {
+            const now = new Date().toISOString();
+            await inquiriesCollection.insertOne({
+              ...inquiry,
+              id: inquiry.id || uuid(),
+              created_at: inquiry.created_at || now,
+              updated_at: inquiry.updated_at || now
+            });
+          }
+          console.log(`Successfully migrated ${enquiries.length} enquiries from JSON to MongoDB`);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error migrating enquiries from JSON:', error);
+  }
 }
 
-// Helper function to run a single query
-export function dbGet(sql: string, params: any[] = []): Promise<any> {
-  return new Promise((resolve, reject) => {
-    db.get(sql, params, (err, row) => {
-      if (err) reject(err);
-      else resolve(row);
-    });
-  });
-}
-
-// Helper function to run a query without returning data
-export function dbRun(sql: string, params: any[] = []): Promise<void> {
-  return new Promise((resolve, reject) => {
-    db.run(sql, params, (err) => {
-      if (err) reject(err);
-      else resolve();
-    });
-  });
-}
-
-// Helper function to insert and get the ID
-export function dbInsert(sql: string, params: any[] = []): Promise<string> {
-  return new Promise((resolve, reject) => {
-    db.run(sql, params, function (err) {
-      if (err) reject(err);
-      else resolve(this.lastID?.toString() || '');
-    });
-  });
-}
+// Re-export for backward compatibility
+export { connectToDatabase, getProductsCollection, getGalleryCollection, getContactInquiriesCollection };

@@ -1,57 +1,23 @@
 import { randomUUID } from "crypto";
-import { dbAll, dbGet, dbRun } from "./database";
+import { 
+  getGalleryCollection, 
+  getProductsCollection, 
+  getContactInquiriesCollection, 
+  getCategoriesCollection,
+  GalleryItem,
+  Product,
+  ContactInquiry,
+  Category
+} from "./mongodb";
 
 // Types
-type Product = {
-  id: string;
-  name: string;
-  category: string;
-  description: string;
-  image_filename: string;
-  image_path: string;
-  order_index: number;
-  created_at: string;
-  updated_at: string;
-};
+export type InsertProduct = Omit<Product, '_id' | 'id' | 'created_at' | 'updated_at'>;
 
-type InsertProduct = Omit<Product, 'id' | 'created_at' | 'updated_at'>;
+export type InsertCategory = Omit<Category, '_id' | 'id'>;
 
-type Category = {
-  id: string;
-  name: string;
-  slug: string;
-  description: string;
-  icon: string;
-};
+export type InsertContactInquiry = Omit<ContactInquiry, '_id' | 'id' | 'status' | 'created_at' | 'updated_at'>;
 
-type InsertCategory = Omit<Category, 'id'>;
-
-type ContactInquiry = {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  service: string;
-  message: string;
-  status: 'unread' | 'read' | 'responded';
-  created_at: string;
-  updated_at: string;
-};
-
-type InsertContactInquiry = Omit<ContactInquiry, 'id' | 'status' | 'created_at' | 'updated_at'>;
-
-export type GalleryItem = {
-  id: string;
-  title: string;
-  category: string;
-  image_filename: string;
-  image_path: string;
-  order_index: number;
-  created_at: string;
-  updated_at: string;
-};
-
-export type InsertGalleryItem = Omit<GalleryItem, 'id' | 'created_at' | 'updated_at'>;
+export type InsertGalleryItem = Omit<GalleryItem, '_id' | 'id' | 'created_at' | 'updated_at'>;
 
 export interface IStorage {
   getProducts(): Promise<Product[]>;
@@ -145,9 +111,11 @@ export class MemStorage implements IStorage {
 
   async getProducts(): Promise<Product[]> {
     try {
-      const products = await dbAll(
-        'SELECT * FROM products ORDER BY order_index ASC, created_at DESC'
-      );
+      const collection = await getProductsCollection();
+      const products = await collection
+        .find({})
+        .sort({ order_index: 1, created_at: -1 })
+        .toArray();
       return products || [];
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -157,8 +125,9 @@ export class MemStorage implements IStorage {
 
   async getProductById(id: string): Promise<Product | undefined> {
     try {
-      const product = await dbGet('SELECT * FROM products WHERE id = ?', [id]);
-      return product;
+      const collection = await getProductsCollection();
+      const product = await collection.findOne({ id });
+      return product || undefined;
     } catch (error) {
       console.error('Error fetching product:', error);
       return undefined;
@@ -170,12 +139,16 @@ export class MemStorage implements IStorage {
       const id = randomUUID();
       const now = new Date().toISOString();
       
-      await dbRun(
-        `INSERT INTO products (id, name, category, description, image_filename, image_path, order_index, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [id, insertProduct.name, insertProduct.category, insertProduct.description, insertProduct.image_filename, insertProduct.image_path, insertProduct.order_index, now, now]
-      );
-      return { ...insertProduct, id, created_at: now, updated_at: now };
+      const product: Product = {
+        ...insertProduct,
+        id,
+        created_at: now,
+        updated_at: now
+      };
+      
+      const collection = await getProductsCollection();
+      await collection.insertOne(product);
+      return product;
     } catch (error) {
       console.error('Error creating product:', error);
       throw error;
@@ -188,11 +161,16 @@ export class MemStorage implements IStorage {
       if (!product) return undefined;
 
       const now = new Date().toISOString();
-      const updated: Product = { ...product, ...updates, updated_at: now };
+      const updated: Product = { 
+        ...product, 
+        ...updates, 
+        updated_at: now 
+      };
 
-      await dbRun(
-        `UPDATE products SET name = ?, category = ?, description = ?, image_filename = ?, image_path = ?, order_index = ?, updated_at = ? WHERE id = ?`,
-        [updated.name, updated.category, updated.description, updated.image_filename, updated.image_path, updated.order_index, updated.updated_at, id]
+      const collection = await getProductsCollection();
+      await collection.updateOne(
+        { id },
+        { $set: { ...updates, updated_at: now } }
       );
 
       return updated;
@@ -204,8 +182,9 @@ export class MemStorage implements IStorage {
 
   async deleteProduct(id: string): Promise<boolean> {
     try {
-      await dbRun('DELETE FROM products WHERE id = ?', [id]);
-      return true;
+      const collection = await getProductsCollection();
+      const result = await collection.deleteOne({ id });
+      return result.deletedCount === 1;
     } catch (error) {
       console.error('Error deleting product:', error);
       return false;
@@ -239,9 +218,11 @@ export class MemStorage implements IStorage {
 
   async getContactInquiries(): Promise<ContactInquiry[]> {
     try {
-      const inquiries = await dbAll(
-        'SELECT * FROM contact_inquiries ORDER BY created_at DESC'
-      );
+      const collection = await getContactInquiriesCollection();
+      const inquiries = await collection
+        .find({})
+        .sort({ created_at: -1 })
+        .toArray();
       return inquiries || [];
     } catch (error) {
       console.error('Error fetching contact inquiries:', error);
@@ -251,11 +232,9 @@ export class MemStorage implements IStorage {
 
   async getContactInquiryById(id: string): Promise<ContactInquiry | undefined> {
     try {
-      const inquiry = await dbGet(
-        'SELECT * FROM contact_inquiries WHERE id = ?',
-        [id]
-      );
-      return inquiry;
+      const collection = await getContactInquiriesCollection();
+      const inquiry = await collection.findOne({ id });
+      return inquiry || undefined;
     } catch (error) {
       console.error('Error fetching contact inquiry:', error);
       return undefined;
@@ -276,22 +255,8 @@ export class MemStorage implements IStorage {
     };
 
     try {
-      await dbRun(
-        `INSERT INTO contact_inquiries 
-         (id, name, email, phone, service, message, status, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          inquiry.id,
-          inquiry.name,
-          inquiry.email,
-          inquiry.phone,
-          inquiry.service,
-          inquiry.message,
-          inquiry.status,
-          inquiry.created_at,
-          inquiry.updated_at
-        ]
-      );
+      const collection = await getContactInquiriesCollection();
+      await collection.insertOne(inquiry);
       return inquiry;
     } catch (error) {
       console.error('Error creating contact inquiry:', error);
@@ -306,9 +271,10 @@ export class MemStorage implements IStorage {
 
       const now = new Date().toISOString();
       
-      await dbRun(
-        'UPDATE contact_inquiries SET status = ?, updated_at = ? WHERE id = ?',
-        [status, now, id]
+      const collection = await getContactInquiriesCollection();
+      await collection.updateOne(
+        { id },
+        { $set: { status, updated_at: now } }
       );
 
       return { ...inquiry, status, updated_at: now };
@@ -320,8 +286,9 @@ export class MemStorage implements IStorage {
 
   async deleteContactInquiry(id: string): Promise<boolean> {
     try {
-      await dbRun('DELETE FROM contact_inquiries WHERE id = ?', [id]);
-      return true;
+      const collection = await getContactInquiriesCollection();
+      const result = await collection.deleteOne({ id });
+      return result.deletedCount === 1;
     } catch (error) {
       console.error('Error deleting contact inquiry:', error);
       return false;
@@ -330,10 +297,12 @@ export class MemStorage implements IStorage {
 
   async getGalleryItems(): Promise<GalleryItem[]> {
     try {
-      const items = await dbAll(
-        'SELECT * FROM gallery_items ORDER BY order_index ASC, created_at DESC'
-      );
-      return items;
+      const collection = await getGalleryCollection();
+      const items = await collection
+        .find({})
+        .sort({ order_index: 1, created_at: -1 })
+        .toArray();
+      return items || [];
     } catch (error) {
       console.error('Error fetching gallery items:', error);
       return [];
@@ -342,11 +311,9 @@ export class MemStorage implements IStorage {
 
   async getGalleryItemById(id: string): Promise<GalleryItem | undefined> {
     try {
-      const item = await dbGet(
-        'SELECT * FROM gallery_items WHERE id = ?',
-        [id]
-      );
-      return item;
+      const collection = await getGalleryCollection();
+      const item = await collection.findOne({ id });
+      return item || undefined;
     } catch (error) {
       console.error('Error fetching gallery item:', error);
       return undefined;
@@ -354,39 +321,40 @@ export class MemStorage implements IStorage {
   }
 
   async createGalleryItem(insertItem: InsertGalleryItem): Promise<GalleryItem> {
-    const id = randomUUID();
-    const now = new Date().toISOString();
-    
     try {
-      await dbRun(
-        `INSERT INTO gallery_items (id, title, category, image_filename, image_path, order_index, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [id, insertItem.title, insertItem.category, insertItem.image_filename, insertItem.image_path, insertItem.order_index, now, now]
-      );
+      const id = randomUUID();
+      const now = new Date().toISOString();
       
-      const item = await this.getGalleryItemById(id);
-      return item!;
+      const item: GalleryItem = {
+        ...insertItem,
+        id,
+        created_at: now,
+        updated_at: now
+      };
+      
+      const collection = await getGalleryCollection();
+      await collection.insertOne(item);
+      return item;
     } catch (error) {
       console.error('Error creating gallery item:', error);
       throw error;
     }
   }
 
-  async updateGalleryItem(id: string, insertItem: Partial<InsertGalleryItem>): Promise<GalleryItem | undefined> {
+  async updateGalleryItem(id: string, updates: Partial<InsertGalleryItem>): Promise<GalleryItem | undefined> {
     try {
       const existing = await this.getGalleryItemById(id);
       if (!existing) return undefined;
 
       const now = new Date().toISOString();
-      const updates = { ...existing, ...insertItem, id, updated_at: now };
-
-      await dbRun(
-        `UPDATE gallery_items SET title = ?, category = ?, image_filename = ?, image_path = ?, order_index = ?, updated_at = ?
-         WHERE id = ?`,
-        [updates.title, updates.category, updates.image_filename, updates.image_path, updates.order_index, now, id]
+      
+      const collection = await getGalleryCollection();
+      await collection.updateOne(
+        { id },
+        { $set: { ...updates, updated_at: now } }
       );
 
-      return this.getGalleryItemById(id);
+      return this.getGalleryItemById(id) as Promise<GalleryItem | undefined>;
     } catch (error) {
       console.error('Error updating gallery item:', error);
       return undefined;
@@ -395,8 +363,9 @@ export class MemStorage implements IStorage {
 
   async deleteGalleryItem(id: string): Promise<boolean> {
     try {
-      await dbRun('DELETE FROM gallery_items WHERE id = ?', [id]);
-      return true;
+      const collection = await getGalleryCollection();
+      const result = await collection.deleteOne({ id });
+      return result.deletedCount === 1;
     } catch (error) {
       console.error('Error deleting gallery item:', error);
       return false;
