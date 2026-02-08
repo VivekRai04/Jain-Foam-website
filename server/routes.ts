@@ -2,19 +2,18 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import bcrypt from "bcrypt";
 import multer from "multer";
-import { join } from "path";
-import { existsSync, mkdirSync, unlinkSync } from "fs";
 import { storage } from "./storage";
 import { emailService } from "./email";
+import { 
+  uploadFileToGridFS, 
+  getFileFromGridFS, 
+  deleteFileFromGridFS,
+  connectToDatabase
+} from "./mongodb";
 
-// Setup multer for image uploads
-const uploadsDir = join(process.cwd(), 'uploads', 'gallery');
-if (!existsSync(uploadsDir)) {
-  mkdirSync(uploadsDir, { recursive: true });
-}
-
+// Setup multer for temporary file handling (uploaded to GridFS immediately)
 const upload = multer({
-  dest: uploadsDir,
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB max file size
   },
@@ -165,6 +164,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Image serving endpoint from GridFS
+  app.get("/api/images/:id", async (req, res) => {
+    try {
+      const fileId = req.params.id;
+      
+      if (!fileId) {
+        return res.status(400).json({ error: "Image ID is required" });
+      }
+      
+      const fileResult = await getFileFromGridFS(fileId);
+      
+      if (!fileResult) {
+        return res.status(404).json({ error: "Image not found" });
+      }
+      
+      const { stream, info } = fileResult;
+      
+      // Set appropriate headers
+      res.set({
+        'Content-Type': info.contentType,
+        'Content-Length': info.length.toString(),
+        'Content-Disposition': `inline; filename="${info.filename}"`,
+        'Cache-Control': 'public, max-age=31536000', // Cache for 1 year
+      });
+      
+      // Pipe the GridFS stream directly to response
+      stream.pipe(res);
+      
+      stream.on('error', (error) => {
+        console.error('Error streaming image:', error);
+        if (!res.headersSent) {
+          res.status(500).json({ error: "Error streaming image" });
+        }
+      });
+      
+    } catch (error) {
+      console.error('Error serving image:', error);
+      res.status(500).json({ error: "Failed to serve image" });
+    }
+  });
+
   // Gallery endpoints
   app.get("/api/gallery", async (req, res) => {
     try {
@@ -198,31 +238,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { title, category } = req.body;
       if (!title || !category) {
-        unlinkSync(req.file.path);
         return res.status(400).json({ error: "Title and category are required" });
       }
 
-      const filename = req.file.filename;
-      const imagePath = `/uploads/gallery/${filename}`;
+      // Ensure database connection
+      await connectToDatabase();
+      
+      // Upload file to GridFS
+      const gridfsId = await uploadFileToGridFS(
+        req.file.buffer,
+        req.file.originalname,
+        req.file.mimetype,
+        { type: 'gallery', category }
+      );
+
+      const filename = req.file.originalname;
+      const imagePath = `/api/images/${gridfsId.toString()}`;
 
       const item = await storage.createGalleryItem({
         title,
         category,
         image_filename: filename,
         image_path: imagePath,
+        image_gridfs_id: gridfsId.toString(),
         order_index: 0,
       });
 
       res.json({ success: true, item });
     } catch (error) {
       console.error("Error uploading gallery image:", error);
-      if (req.file) {
-        try {
-          unlinkSync(req.file.path);
-        } catch (e) {
-          console.error("Error deleting uploaded file:", e);
-        }
-      }
       res.status(500).json({ error: "Failed to upload image" });
     }
   });
@@ -256,10 +300,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Gallery item not found" });
       }
 
-      // Delete the file from disk
-      const filePath = join(uploadsDir, item.image_filename);
-      if (existsSync(filePath)) {
-        unlinkSync(filePath);
+      // Delete the file from GridFS if it exists
+      if (item.image_gridfs_id) {
+        await deleteFileFromGridFS(item.image_gridfs_id);
       }
 
       // Delete from database
@@ -271,7 +314,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin products CRUD endpoints
+  // Admin products upload endpoint
   app.post("/api/admin/products/upload", requireAdmin, upload.single('image'), async (req, res) => {
     try {
       if (!req.file) {
@@ -284,12 +327,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
+      // Ensure database connection
+      await connectToDatabase();
+      
+      // Upload file to GridFS
+      const gridfsId = await uploadFileToGridFS(
+        req.file.buffer,
+        req.file.originalname,
+        req.file.mimetype,
+        { type: 'product', category }
+      );
+
       const product = await storage.createProduct({
         name,
         category,
         description,
-        image_filename: req.file.filename,
-        image_path: `/uploads/${req.file.filename}`,
+        image_filename: req.file.originalname,
+        image_path: `/api/images/${gridfsId.toString()}`,
+        image_gridfs_id: gridfsId.toString(),
         order_index: 0,
       });
 
@@ -328,12 +383,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Product not found" });
       }
 
-      // Delete the file from disk if it's in uploads
-      if (product.image_path.includes('/uploads/')) {
-        const filePath = join(uploadsDir, product.image_filename);
-        if (existsSync(filePath)) {
-          unlinkSync(filePath);
-        }
+      // Delete the file from GridFS if it exists
+      if (product.image_gridfs_id) {
+        await deleteFileFromGridFS(product.image_gridfs_id);
       }
 
       // Delete from database
