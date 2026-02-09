@@ -6,4 +6,3 @@ vite.config.ts.*
 *.tar.gz
 *.env
 .env.example
-server/admin-config.json
