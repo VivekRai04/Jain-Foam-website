@@ -10,6 +10,31 @@ import {
   deleteFileFromGridFS,
   connectToDatabase
 } from "./mongodb";
+import { readFileSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+// Get __dirname in ES module scope
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Load admin config - prioritize environment variable (for production), fallback to JSON file (for local dev)
+let adminPassword: string | undefined;
+
+if (process.env.ADMIN_PASSWORD) {
+  // Use environment variable (Render, production)
+  adminPassword = process.env.ADMIN_PASSWORD;
+  console.log('Using ADMIN_PASSWORD from environment variable');
+} else {
+  // Fallback to JSON file (local development)
+  try {
+    const adminConfig = JSON.parse(readFileSync(join(__dirname, 'admin-config.json'), 'utf-8'));
+    adminPassword = adminConfig.adminPassword;
+    console.log('Using ADMIN_PASSWORD from admin-config.json');
+  } catch (err) {
+    console.error('Failed to load admin config:', err);
+  }
+}
 
 // Setup multer for temporary file handling (uploaded to GridFS immediately)
 const upload = multer({
@@ -94,9 +119,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/login", async (req, res) => {
     try {
       const { password } = req.body;
-      const adminPassword = process.env.ADMIN_PASSWORD;
 
-      console.log('Login attempt, ADMIN_PASSWORD set:', !!adminPassword);
+      console.log('Login attempt');
+      console.log('ADMIN_PASSWORD configured:', !!adminPassword);
+      console.log('ADMIN_PASSWORD length:', adminPassword?.length || 0);
+      console.log('Provided password length:', password?.length || 0);
 
       if (!adminPassword) {
         return res.status(500).json({ error: "Admin password not configured" });
@@ -123,6 +150,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json({ authenticated: true });
     }
     res.status(401).json({ error: "Unauthorized" });
+  });
+
+  // Debug endpoint to check ADMIN_PASSWORD (only in development)
+  app.get("/api/admin/debug-password", async (req, res) => {
+    const testPassword = "JainFoam1995";
+    
+    if (!adminPassword) {
+      return res.json({ error: "ADMIN_PASSWORD not configured" });
+    }
+    
+    const isValid = await bcrypt.compare(testPassword, adminPassword);
+    res.json({
+      configLength: adminPassword.length,
+      configFirst10: adminPassword.substring(0, 10),
+      testPasswordLength: testPassword.length,
+      passwordMatch: isValid
+    });
   });
 
   app.post("/api/admin/logout", (req, res) => {
