@@ -210,46 +210,8 @@ async function seedInitialData() {
       }
       console.log('Products seeded successfully');
     }
-
-    // Migrate existing JSON enquiries to MongoDB
-    await migrateEnquiriesFromJSON();
   } catch (error) {
     console.error('Error seeding data:', error);
-  }
-}
-
-async function migrateEnquiriesFromJSON() {
-  try {
-    const fs = await import('fs');
-    const path = await import('path');
-    const enquiriesFile = path.join(process.cwd(), 'enquiries.json');
-    
-    if (fs.existsSync(enquiriesFile)) {
-      const enquiriesData = fs.readFileSync(enquiriesFile, 'utf-8');
-      const enquiries = JSON.parse(enquiriesData);
-      
-      if (enquiries.length > 0) {
-        const inquiriesCollection = await getContactInquiriesCollection();
-        const existingCount = await inquiriesCollection.countDocuments();
-        
-        if (existingCount === 0) {
-          const { randomUUID: uuid } = await import('crypto');
-          
-          for (const inquiry of enquiries) {
-            const now = new Date().toISOString();
-            await inquiriesCollection.insertOne({
-              ...inquiry,
-              id: inquiry.id || uuid(),
-              created_at: inquiry.created_at || now,
-              updated_at: inquiry.updated_at || now
-            });
-          }
-          console.log(`Successfully migrated ${enquiries.length} enquiries from JSON to MongoDB`);
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Error migrating enquiries from JSON:', error);
   }
 }
 

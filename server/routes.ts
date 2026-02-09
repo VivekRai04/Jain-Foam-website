@@ -8,7 +8,8 @@ import {
   uploadFileToGridFS, 
   getFileFromGridFS, 
   deleteFileFromGridFS,
-  connectToDatabase
+  connectToDatabase,
+  getContactInquiriesCollection
 } from "./mongodb";
 
 // Setup multer for temporary file handling (uploaded to GridFS immediately)
@@ -79,6 +80,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating contact inquiry:", error);
       res.status(400).json({ error: "Failed to submit inquiry" });
+    }
+  });
+
+  // Debug endpoint to check MongoDB connection
+  app.get("/api/debug/mongodb", async (req, res) => {
+    try {
+      const collection = await getContactInquiriesCollection();
+      const count = await collection.countDocuments();
+      res.json({
+        connected: true,
+        enquiryCount: count,
+        database: "jain_foam",
+        collection: "contact_inquiries"
+      });
+    } catch (error) {
+      res.status(500).json({
+        connected: false,
+        error: String(error)
+      });
     }
   });
 
