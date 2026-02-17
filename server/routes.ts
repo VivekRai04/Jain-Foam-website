@@ -2,6 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import bcrypt from "bcrypt";
 import multer from "multer";
+import path from "path";
+import { randomUUID } from "crypto";
 import { storage } from "./storage";
 import { emailService } from "./email";
 import { 
@@ -12,9 +14,17 @@ import {
   getContactInquiriesCollection
 } from "./mongodb";
 
-// Setup multer for temporary file handling (uploaded to GridFS immediately)
+// Setup multer for disk storage (saves to uploads folder, not memory)
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, 'uploads/gallery');
+    },
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname);
+      cb(null, `${randomUUID()}${ext}`);
+    }
+  }),
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB max file size
   },
@@ -289,13 +299,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Ensure database connection
       await connectToDatabase();
       
+      // Read file from disk and upload to GridFS
+      const fs = await import('fs');
+      const fileBuffer = fs.readFileSync(req.file.path);
+      
       // Upload file to GridFS
       const gridfsId = await uploadFileToGridFS(
-        req.file.buffer,
+        fileBuffer,
         req.file.originalname,
         req.file.mimetype,
         { type: 'gallery', category }
       );
+
+      // Delete temp file from disk after upload to GridFS
+      fs.unlinkSync(req.file.path);
 
       const filename = req.file.originalname;
       const imagePath = `/api/images/${gridfsId.toString()}`;
@@ -375,13 +392,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Ensure database connection
       await connectToDatabase();
       
+      // Read file from disk and upload to GridFS
+      const fs = await import('fs');
+      const fileBuffer = fs.readFileSync(req.file.path);
+      
       // Upload file to GridFS
       const gridfsId = await uploadFileToGridFS(
-        req.file.buffer,
+        fileBuffer,
         req.file.originalname,
         req.file.mimetype,
         { type: 'product', category }
       );
+
+      // Delete temp file from disk after upload to GridFS
+      fs.unlinkSync(req.file.path);
 
       const product = await storage.createProduct({
         name,
