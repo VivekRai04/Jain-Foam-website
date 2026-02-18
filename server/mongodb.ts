@@ -133,7 +133,8 @@ export async function closeConnection(): Promise<void> {
   }
 }
 
-// GridFS helper functions
+// GridFS helper functions - kept for potential future use
+// Currently unused as images are stored in Cloudinary
 export async function getGridFSBucket(): Promise<GridFSBucket> {
   if (!gridfsBucket) {
     await connectToDatabase();

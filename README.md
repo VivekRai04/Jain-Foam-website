@@ -28,7 +28,8 @@ A modern, full-stack website for Jain Foam featuring product showcases, gallerie
 
 **Backend:**
 - Node.js / Express
-- SQLite (database)
+- MongoDB (database)
+- Cloudinary (image storage)
 - Brevo API (email service)
 - Express Session (authentication)
 - Multer (file uploads)
@@ -48,11 +49,14 @@ jain-foam-website/
 ├── server/                # Backend (Node/Express)
 │   ├── index.ts          # Express server setup
 │   ├── routes.ts         # API routes
-│   ├── database.ts       # SQLite initialization
+│   ├── database.ts       # MongoDB initialization & seeding
+│   ├── mongodb.ts       # MongoDB collections & GridFS
+│   ├── storage.ts        # Data access layer
+│   ├── cloudinary.ts     # Cloudinary image upload
 │   ├── email.ts          # Brevo email service
-│   └── storage.ts        # Product/service data
+│   └── ...
 ├── attached_assets/       # Static assets (images)
-├── uploads/               # User-uploaded files
+├── uploads/               # Temp user-uploaded files
 └── package.json          # Project dependencies
 ```
 
@@ -81,19 +85,37 @@ jain-foam-website/
    ```env
    PORT=5000
    NODE_ENV=development
+   
+   # Database
+   MONGODB_URI=mongodb+srv://username:password@cluster.dbname.mongodb.net/jain_foam
+   DB_NAME=jain_foam
+   
+   # Cloudinary (for image uploads)
+   CLOUDINARY_CLOUD_NAME=your_cloud_name
+   CLOUDINARY_API_KEY=your_api_key
+   CLOUDINARY_API_SECRET=your_api_secret
+   
+   # Email
    BREVO_API_KEY=your_brevo_api_key
    CONTACT_EMAIL=your_contact_email@example.com
+   
+   # Authentication
    SESSION_SECRET=your_random_secret_key_here
    ADMIN_PASSWORD=your_admin_password
    ```
 
    **Environment Variables Explained:**
    - `PORT` - Server port (default: 5000)
-   - `NODE_ENV` - development or production (enables Vite HMR in dev)
+   - `NODE_ENV` - development or production
+   - `MONGODB_URI` - MongoDB connection string
+   - `DB_NAME` - MongoDB database name
+   - `CLOUDINARY_CLOUD_NAME` - Your Cloudinary cloud name
+   - `CLOUDINARY_API_KEY` - Cloudinary API key
+   - `CLOUDINARY_API_SECRET` - Cloudinary API secret
    - `BREVO_API_KEY` - API key from Brevo for sending emails
    - `CONTACT_EMAIL` - Email address that receives contact form submissions
-   - `SESSION_SECRET` - Secret key for encrypting session cookies (use a strong random string)
-   - `ADMIN_PASSWORD` - Password for admin login (stored securely with bcrypt)
+   - `SESSION_SECRET` - Secret key for encrypting session cookies
+   - `ADMIN_PASSWORD` - Password for admin login (stored with bcrypt)
 
 4. **Run the development server**
    ```bash
@@ -126,10 +148,11 @@ Access the admin dashboard at `/admin` with the credentials set in your `.env` f
 - **Product Management** - Edit product/service details
 - **Enquiries** - View and manage customer inquiries
 
-## 📁 File Storage
+## 📁 Image & File Storage
 
-- **Static Assets** - Served from `attached_assets/` (product images, logos, etc.)
-- **User Uploads** - Gallery uploads stored in `uploads/gallery/` with hashed filenames
+- **Images** - Stored on Cloudinary CDN for fast delivery
+- **Temp Uploads** - Temporary files stored in `uploads/gallery/` before Cloudinary upload
+- **Static Assets** - Served from `attached_assets/` (logos, generated images)
 
 ## 🌐 Deployment
 
@@ -141,9 +164,23 @@ The project is configured for deployment on platforms like:
 ### Environment Setup for Production
 1. Update `.env` with production values
 2. Set `NODE_ENV=production`
-3. Use a production-grade database (consider migrating from SQLite)
+3. Use a production MongoDB instance (MongoDB Atlas or self-hosted)
 4. Ensure HTTPS is enabled
 5. Configure proper CORS if needed
+
+## ☁️ Cloudinary (Image Storage)
+
+This project uses **Cloudinary** for storing and serving images. Benefits:
+- Fast CDN delivery worldwide
+- Automatic image optimization
+- No server storage issues
+
+To set up Cloudinary:
+1. Create a free account at https://cloudinary.com
+2. Get your cloud name, API key, and API secret from the dashboard
+3. Add them to your `.env` as `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
+
+Images are automatically uploaded to the `jain_foam` folder in your Cloudinary account.
 
 ## 📧 Email Service
 

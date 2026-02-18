@@ -3,18 +3,14 @@ import { createServer, type Server } from "http";
 import bcrypt from "bcrypt";
 import multer from "multer";
 import path from "path";
+import fs from "fs";
 import { randomUUID } from "crypto";
 import { storage } from "./storage";
 import { emailService } from "./email";
-import { 
-  uploadFileToGridFS, 
-  getFileFromGridFS, 
-  deleteFileFromGridFS,
-  connectToDatabase,
-  getContactInquiriesCollection
-} from "./mongodb";
+import { uploadToCloudinary, deleteFromCloudinary } from "./cloudinary";
+import { getFileFromGridFS, connectToDatabase, getContactInquiriesCollection } from "./mongodb";
 
-// Setup multer for disk storage (saves to uploads folder, not memory)
+// Setup multer for disk storage (temp storage before upload to Cloudinary)
 const upload = multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => {
@@ -109,6 +105,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         connected: false,
         error: String(error)
       });
+    }
+  });
+
+  // Debug endpoint to check image URLs in database
+  app.get("/api/debug/image-urls", async (req, res) => {
+    try {
+      const allProducts = await storage.getProducts();
+      const galleryItems = await storage.getGalleryItems();
+      
+      const checkUrl = (url: string) => {
+        if (!url) return 'missing';
+        if (url.startsWith('https://res.cloudinary.com')) return 'cloudinary';
+        if (url.startsWith('/generated_images') || url.startsWith('/api/images')) return 'local';
+        if (url.includes('imgur')) return 'imgur';
+        return 'other';
+      };
+
+      const productsList = allProducts.map((p: any) => ({
+        name: p.name,
+        image_path: p.image_path,
+        url_type: checkUrl(p.image_path)
+      }));
+
+      const galleryList = galleryItems.map((g: any) => ({
+        title: g.title,
+        image_path: g.image_path,
+        url_type: checkUrl(g.image_path)
+      }));
+
+      res.json({
+        products: productsList,
+        gallery: galleryList,
+        summary: {
+          total_products: productsList.length,
+          total_gallery: galleryList.length,
+          cloudinary_count: [...productsList, ...galleryList].filter((i: any) => i.url_type === 'cloudinary').length,
+          local_count: [...productsList, ...galleryList].filter((i: any) => i.url_type === 'local').length,
+          imgur_count: [...productsList, ...galleryList].filter((i: any) => i.url_type === 'imgur').length
+        }
+      });
+    } catch (error) {
+      res.status(500).json({ error: String(error) });
     }
   });
 
@@ -303,26 +341,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fs = await import('fs');
       const fileBuffer = fs.readFileSync(req.file.path);
       
-      // Upload file to GridFS
-      const gridfsId = await uploadFileToGridFS(
-        fileBuffer,
-        req.file.originalname,
-        req.file.mimetype,
-        { type: 'gallery', category }
-      );
+      // Upload file to Cloudinary
+      const cloudinaryUrl = await uploadToCloudinary(fileBuffer, req.file.originalname);
 
-      // Delete temp file from disk after upload to GridFS
+      // Delete temp file from disk after upload
       fs.unlinkSync(req.file.path);
 
+      if (!cloudinaryUrl) {
+        return res.status(500).json({ error: "Failed to upload image to Cloudinary" });
+      }
+
       const filename = req.file.originalname;
-      const imagePath = `/api/images/${gridfsId.toString()}`;
+      // Store Cloudinary URL directly
+      const imagePath = cloudinaryUrl;
 
       const item = await storage.createGalleryItem({
         title,
         category,
         image_filename: filename,
         image_path: imagePath,
-        image_gridfs_id: gridfsId.toString(),
+        image_gridfs_id: undefined, // No longer using GridFS
         order_index: 0,
       });
 
@@ -362,9 +400,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Gallery item not found" });
       }
 
-      // Delete the file from GridFS if it exists
-      if (item.image_gridfs_id) {
-        await deleteFileFromGridFS(item.image_gridfs_id);
+      // Delete from Cloudinary if it's a Cloudinary URL
+      if (item.image_path && item.image_path.includes('cloudinary.com')) {
+        try {
+          // Extract public_id from Cloudinary URL
+          // URL format: https://res.cloudinary.com/cloud_name/image/upload/v/version/folder/subfolder/filename.ext
+          const urlParts = item.image_path.split('/upload/');
+          if (urlParts.length > 1) {
+            // Get the part after /upload/ and remove the version number prefix and extension
+            let publicIdWithVersion = urlParts[1];
+            // Remove version prefix (e.g., v1771433802/)
+            const versionMatch = publicIdWithVersion.match(/^v\d+\/(.+)$/);
+            if (versionMatch) {
+              publicIdWithVersion = versionMatch[1];
+            }
+            // Remove extension
+            const publicId = publicIdWithVersion.replace(/\.[^/.]+$/, '');
+            console.log(`Attempting to delete from Cloudinary: ${publicId}`);
+            const deleted = await deleteFromCloudinary(publicId);
+            console.log(`Cloudinary delete result: ${deleted}`);
+          }
+        } catch (cloudinaryError) {
+          console.error('Error deleting from Cloudinary:', cloudinaryError);
+          // Continue with database deletion even if Cloudinary deletion fails
+        }
       }
 
       // Delete from database
@@ -396,15 +455,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fs = await import('fs');
       const fileBuffer = fs.readFileSync(req.file.path);
       
-      // Upload file to GridFS
-      const gridfsId = await uploadFileToGridFS(
-        fileBuffer,
-        req.file.originalname,
-        req.file.mimetype,
-        { type: 'product', category }
-      );
+      // Upload file to Cloudinary
+      const cloudinaryUrl = await uploadToCloudinary(fileBuffer, req.file.originalname);
+      
+      if (!cloudinaryUrl) {
+        fs.unlinkSync(req.file.path);
+        return res.status(500).json({ error: "Failed to upload image to Cloudinary" });
+      }
 
-      // Delete temp file from disk after upload to GridFS
+      // Delete temp file from disk after upload
       fs.unlinkSync(req.file.path);
 
       const product = await storage.createProduct({
@@ -412,8 +471,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         category,
         description,
         image_filename: req.file.originalname,
-        image_path: `/api/images/${gridfsId.toString()}`,
-        image_gridfs_id: gridfsId.toString(),
+        image_path: cloudinaryUrl,
+        image_gridfs_id: undefined,
         order_index: 0,
       });
 
@@ -452,9 +511,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Product not found" });
       }
 
-      // Delete the file from GridFS if it exists
-      if (product.image_gridfs_id) {
-        await deleteFileFromGridFS(product.image_gridfs_id);
+      // Delete from Cloudinary if it's a Cloudinary URL
+      if (product.image_path && product.image_path.includes('cloudinary.com')) {
+        try {
+          // Extract public_id from Cloudinary URL
+          // URL format: https://res.cloudinary.com/cloud_name/image/upload/v/version/folder/subfolder/filename.ext
+          const urlParts = product.image_path.split('/upload/');
+          if (urlParts.length > 1) {
+            // Get the part after /upload/ and remove the version number prefix and extension
+            let publicIdWithVersion = urlParts[1];
+            // Remove version prefix (e.g., v1771433802/)
+            const versionMatch = publicIdWithVersion.match(/^v\d+\/(.+)$/);
+            if (versionMatch) {
+              publicIdWithVersion = versionMatch[1];
+            }
+            // Remove extension
+            const publicId = publicIdWithVersion.replace(/\.[^/.]+$/, '');
+            console.log(`Attempting to delete from Cloudinary: ${publicId}`);
+            const deleted = await deleteFromCloudinary(publicId);
+            console.log(`Cloudinary delete result: ${deleted}`);
+          }
+        } catch (cloudinaryError) {
+          console.error('Error deleting from Cloudinary:', cloudinaryError);
+          // Continue with database deletion even if Cloudinary deletion fails
+        }
       }
 
       // Delete from database

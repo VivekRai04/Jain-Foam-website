@@ -7,8 +7,7 @@
     "dev": "cross-env NODE_ENV=development dotenv -e .env tsx server/index.ts",
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
-    "check": "tsc",
-    "migrate:images": "tsx server/migrate-images.ts"
+    "check": "tsc"
   },
   "dependencies": {
     "@google/genai": "^1.29.1",
@@ -47,6 +46,7 @@
     "autoprefixer": "^10.4.20",
     "bcrypt": "^5.1.1",
     "class-variance-authority": "^0.7.1",
+    "cloudinary": "^2.9.0",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "cross-env": "^10.1.0",
