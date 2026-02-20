@@ -190,10 +190,6 @@ This project uses **Brevo** (formerly Sendinblue) for sending email notification
 2. Get your API key from the dashboard
 3. Add it to your `.env` as `BREVO_API_KEY`
 
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
 ## 📄 License
 
 This project is proprietary and confidential.
