@@ -8,7 +8,7 @@ import { randomUUID } from "crypto";
 import { storage } from "./storage";
 import { emailService } from "./email";
 import { uploadToCloudinary, deleteFromCloudinary } from "./cloudinary";
-import { getFileFromGridFS, connectToDatabase, getContactInquiriesCollection } from "./mongodb";
+import { connectToDatabase, getContactInquiriesCollection } from "./mongodb";
 
 // Setup multer for disk storage (temp storage before upload to Cloudinary)
 const upload = multer({
@@ -257,47 +257,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Image serving endpoint from GridFS
-  app.get("/api/images/:id", async (req, res) => {
-    try {
-      const fileId = req.params.id;
-      
-      if (!fileId) {
-        return res.status(400).json({ error: "Image ID is required" });
-      }
-      
-      const fileResult = await getFileFromGridFS(fileId);
-      
-      if (!fileResult) {
-        return res.status(404).json({ error: "Image not found" });
-      }
-      
-      const { stream, info } = fileResult;
-      
-      // Set appropriate headers
-      res.set({
-        'Content-Type': info.contentType,
-        'Content-Length': info.length.toString(),
-        'Content-Disposition': `inline; filename="${info.filename}"`,
-        'Cache-Control': 'public, max-age=31536000', // Cache for 1 year
-      });
-      
-      // Pipe the GridFS stream directly to response
-      stream.pipe(res);
-      
-      stream.on('error', (error) => {
-        console.error('Error streaming image:', error);
-        if (!res.headersSent) {
-          res.status(500).json({ error: "Error streaming image" });
-        }
-      });
-      
-    } catch (error) {
-      console.error('Error serving image:', error);
-      res.status(500).json({ error: "Failed to serve image" });
-    }
-  });
-
   // Gallery endpoints
   app.get("/api/gallery", async (req, res) => {
     try {
@@ -337,7 +296,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Ensure database connection
       await connectToDatabase();
       
-      // Read file from disk and upload to GridFS
+      // Read file from disk and upload to Cloudinary
       const fs = await import('fs');
       const fileBuffer = fs.readFileSync(req.file.path);
       
@@ -360,7 +319,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         category,
         image_filename: filename,
         image_path: imagePath,
-        image_gridfs_id: undefined, // No longer using GridFS
+        image_gridfs_id: undefined,
         order_index: 0,
       });
 
@@ -451,7 +410,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Ensure database connection
       await connectToDatabase();
       
-      // Read file from disk and upload to GridFS
+      // Read file from disk and upload to Cloudinary
       const fs = await import('fs');
       const fileBuffer = fs.readFileSync(req.file.path);
       

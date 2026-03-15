@@ -1,5 +1,4 @@
-import { MongoClient, Db, Collection, ObjectId, Document, GridFSBucket, GridFSBucketReadStream } from 'mongodb';
-import { Readable } from 'stream';
+import { MongoClient, Db, Collection, ObjectId, Document } from 'mongodb';
 
 // Types
 export interface GalleryItem {
@@ -9,7 +8,7 @@ export interface GalleryItem {
   category: string;
   image_filename: string;
   image_path: string;
-  image_gridfs_id?: string; // GridFS file ID for persistent storage
+  image_gridfs_id?: string;
   order_index: number;
   created_at: string;
   updated_at: string;
@@ -23,7 +22,7 @@ export interface Product {
   description: string;
   image_filename: string;
   image_path: string;
-  image_gridfs_id?: string; // GridFS file ID for persistent storage
+  image_gridfs_id?: string;
   order_index: number;
   created_at: string;
   updated_at: string;
@@ -53,7 +52,6 @@ export interface Category {
 
 let client: MongoClient | null = null;
 let db: Db | null = null;
-let gridfsBucket: GridFSBucket | null = null;
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
 const DB_NAME = process.env.DB_NAME || 'jain_foam';
@@ -69,28 +67,12 @@ export async function connectToDatabase(): Promise<Db> {
     db = client.db(DB_NAME);
     console.log('Connected to MongoDB');
     
-    // Create GridFS bucket for image storage
-    await createGridFSBucket(db);
-    
     // Create indexes
     await createIndexes(db);
     
     return db;
   } catch (error) {
     console.error('Error connecting to MongoDB:', error);
-    throw error;
-  }
-}
-
-async function createGridFSBucket(database: Db): Promise<void> {
-  try {
-    gridfsBucket = new GridFSBucket(database, {
-      bucketName: 'images',
-      chunkSizeBytes: 261120, // 255KB chunks for better performance
-    });
-    console.log('GridFS bucket "images" initialized');
-  } catch (error) {
-    console.error('Error creating GridFS bucket:', error);
     throw error;
   }
 }
@@ -123,99 +105,11 @@ export async function getCollection<T extends Document>(name: string): Promise<C
 }
 
 export async function closeConnection(): Promise<void> {
-  // GridFSBucket doesn't have a close method, it will be closed when client closes
-  gridfsBucket = null;
   if (client) {
     await client.close();
     client = null;
     db = null;
     console.log('MongoDB connection closed');
-  }
-}
-
-// GridFS helper functions - kept for potential future use
-// Currently unused as images are stored in Cloudinary
-export async function getGridFSBucket(): Promise<GridFSBucket> {
-  if (!gridfsBucket) {
-    await connectToDatabase();
-  }
-  return gridfsBucket!;
-}
-
-export async function uploadFileToGridFS(
-  buffer: Buffer,
-  filename: string,
-  contentType: string,
-  metadata?: Record<string, unknown>
-): Promise<ObjectId> {
-  const bucket = await getGridFSBucket();
-  
-  return new Promise((resolve, reject) => {
-    const readable = new Readable();
-    readable.push(buffer);
-    readable.push(null);
-    
-    const uploadStream = bucket.openUploadStream(filename, {
-      contentType,
-      metadata: {
-        ...metadata,
-        uploadedAt: new Date().toISOString(),
-      },
-    });
-    
-    // The file ID is available on the stream immediately
-    uploadStream.on('finish', () => {
-      resolve(uploadStream.id as ObjectId);
-    });
-    
-    uploadStream.on('error', (error) => {
-      reject(error);
-    });
-    
-    readable.pipe(uploadStream);
-  });
-}
-
-export async function getFileFromGridFS(fileId: string): Promise<{ stream: GridFSBucketReadStream; info: { filename: string; contentType: string; length: number; _id: ObjectId } } | null> {
-  try {
-    const database = await connectToDatabase();
-    const objectId = new ObjectId(fileId);
-    
-    // First, get file info from the files collection (images.files for our bucket)
-    const filesCollection = database.collection('images.files');
-    const fileInfo = await filesCollection.findOne({ _id: objectId });
-    
-    if (!fileInfo) {
-      return null;
-    }
-    
-    const bucket = await getGridFSBucket();
-    const stream = bucket.openDownloadStream(objectId);
-    
-    return {
-      stream,
-      info: {
-        filename: fileInfo.filename,
-        contentType: fileInfo.contentType || 'application/octet-stream',
-        length: fileInfo.length,
-        _id: fileInfo._id,
-      }
-    };
-  } catch (error) {
-    console.error('Error getting file from GridFS:', error);
-    return null;
-  }
-}
-
-export async function deleteFileFromGridFS(fileId: string): Promise<boolean> {
-  try {
-    const bucket = await getGridFSBucket();
-    const objectId = new ObjectId(fileId);
-    await bucket.delete(objectId);
-    return true;
-  } catch (error) {
-    console.error('Error deleting file from GridFS:', error);
-    return false;
   }
 }
 
