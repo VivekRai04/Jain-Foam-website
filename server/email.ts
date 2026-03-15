@@ -107,8 +107,13 @@ ${inquiry.message}
 Please respond to this inquiry as soon as possible.
     `;
 
+    const toEmail = process.env.CONTACT_EMAIL || 'jainfoamf@gmail.com';
+    if (!toEmail) {
+      throw new Error('CONTACT_EMAIL is not configured');
+    }
+
     await this.sendEmail({
-      to: process.env.CONTACT_EMAIL || 'raiv5253@gmail.com',
+      to: toEmail,
       subject,
       html,
       text,

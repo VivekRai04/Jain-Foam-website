@@ -296,7 +296,7 @@ export default function AdminGallery() {
                 </>
               ) : (
                 <>
-                  <Plus className="w-4 h-4 mr-2" />
+                  <Plus className="w-4 h-4 mr-2"/>
                   Upload Image
                 </>
               )}

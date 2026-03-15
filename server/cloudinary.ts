@@ -62,7 +62,7 @@ export async function uploadToCloudinary(
     console.log(`✓ Uploaded to Cloudinary: ${result.secure_url}`);
     return result.secure_url;
   } catch (error) {
-    console.error('Error uploading to Cloudinary:', error);
+    console.error('X Error uploading to Cloudinary:', error);
     return null;
   }
 }

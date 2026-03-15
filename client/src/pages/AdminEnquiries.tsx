@@ -32,7 +32,7 @@ export default function AdminEnquiries() {
       const res = await apiRequest("GET", "/api/admin/enquiries");
       return res.json();
     },
-    refetchInterval: 5000, // Refresh every 30 seconds
+    refetchInterval: 5000, // Refresh every 5 seconds
   });
 
   const updateStatusMutation = useMutation({
