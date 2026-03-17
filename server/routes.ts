@@ -150,8 +150,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin authentication middleware
+  // Session idle timeout in milliseconds (10 minutes)
+const SESSION_IDLE_TIMEOUT = 10 * 60 * 1000;
+
+// Admin authentication middleware
   const requireAdmin = (req: any, res: any, next: any) => {
+    // Check for idle timeout - expire session if inactive on admin routes
+    const lastAdminActivity = req.session?.lastAdminActivity;
+    const now = Date.now();
+    
+    if (lastAdminActivity && (now - lastAdminActivity) > SESSION_IDLE_TIMEOUT) {
+      // Session has been idle too long, destroy it
+      req.session.destroy(() => {
+        res.status(401).json({ error: "Session expired due to inactivity" });
+      });
+      return;
+    }
+    
+    // Update last admin activity timestamp
+    if (req.session) {
+      req.session.lastAdminActivity = now;
+    }
+    
     if (req.session?.admin) {
       return next();
     }

@@ -18,6 +18,7 @@ const app = express();
 declare module 'express-session' {
   interface SessionData {
     admin?: boolean;
+    lastAdminActivity?: number;
   }
 }
 
@@ -32,7 +33,9 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     secure: false, // Set to true in production with HTTPS
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    httpOnly: true,
+    sameSite: 'strict'
+    // No maxAge - session expires when browser is closed
   }
 }));
 app.use(express.json({
